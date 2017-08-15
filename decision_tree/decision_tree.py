@@ -34,8 +34,7 @@ class decision_tree(object):
             return label_dict.keys()
         if self.__attrs.count(None) == len(self.__attrs) - 1:
             max_label = None
-            for item in label_dict.items():
-                label, value = item
+            for label, value in label_dict.items():
                 if max_label is None:
                     max_label = label
                     continue
@@ -47,8 +46,7 @@ class decision_tree(object):
             attr_index = self.best_attr_index(data_set)
         self.__attrs[attr_index] = None
         attr_dict = self.count_attr(data_set, attr_index)
-        for item in attr_dict.items():
-            key, value = item
+        for key, value in attr_dict.items():
             sub_set = self.sub_set_for_attr(data_set, attr_index, key)
             best_attr_index = self.best_attr_index(sub_set)
             tree[key] = self.build_tree_by_id3(sub_set, best_attr_index)
@@ -89,8 +87,7 @@ class decision_tree(object):
         entropy = self.info_entropy(data_set)
         attr_dict = self.count_attr(data_set, attr_index)
         attr_entropy = 0
-        for item in attr_dict.items():
-            key, value = item
+        for key, value in attr_dict.items():
             p = value * 1.0 / count
             sub_set = self.sub_set_for_attr(data_set, attr_index, key)
             attr_entropy += p * self.info_entropy(sub_set)
@@ -108,8 +105,7 @@ class decision_tree(object):
             return 0
         label_dict = self.count_attr(data_set, self.__label_index)
         gini_imp = 0
-        for item in label_dict.items():
-            key, value = item
+        for key, value in label_dict.items():
             p = value * 1.0 / count
             gini_imp += p * p
         return 1 - gini_imp
@@ -134,8 +130,7 @@ class decision_tree(object):
             return 0
         label_dict = self.count_attr(data_set, self.__label_index)
         entropy = 0
-        for item in label_dict.items():
-            key, value = item
+        for key, value in label_dict.items():
             p = value * 1.0 / count
             entropy += p * math.log(p, 2)
         return -entropy
@@ -146,8 +141,7 @@ class decision_tree(object):
             return 0
         attr_dict = self.count_attr(data_set, attr_index)
         entropy = 0
-        for item in attr_dict.items():
-            key, value = item
+        for key, value in attr_dict.items():
             p = value * 1.0 / count
             entropy += p * math.log(p, 2)
         return -entropy
@@ -183,9 +177,6 @@ if __name__ == '__main__':
     gender_submission = load_csv("gender_submission.csv")
     test_set = test_set[1:]
     test_set = [[x[0]] + [None] + [x[1]] + x[3:] for x in test_set]
-    # length = len(train_set)
-    # splie_index = length * 3 / 4
-    # test_set = train_set[splie_index:]
     decision_tree = decision_tree(train_set, id_index=0, label_index=1)
     decision_tree.fit(mod="id3")
     count = len(test_set)
