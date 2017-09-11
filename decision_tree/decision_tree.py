@@ -335,8 +335,8 @@ if __name__ == '__main__':
     # tp.createPlot(decision_tree.tree())
     submission = []
     submission.append(['PassengerId', 'Survived'])
-    count = len(test_set)
     right_count = 0
+    count = len(test_set)
     for i in range(count):
         label = decision_tree.classifier(test_set[i])
         submission.append([test_set[i][0], label])
