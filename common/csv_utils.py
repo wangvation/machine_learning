@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import csv
+import os
 
 
 def load_csv(filename):

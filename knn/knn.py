@@ -1,5 +1,7 @@
 #! /usr/bin/python3
-import csv
+# -*- coding: utf-8 -*-
+import sys
+sys.path.append("../common")
 import heap
 import time
 import math
@@ -7,6 +9,7 @@ import numpy as np
 import pycuda.driver as drv
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
+from csv_utils import *
 mod = SourceModule("""
     #include<math.h>
     #include <cuda_runtime.h>
@@ -107,46 +110,31 @@ class KNN(object):
         return self.__findLabel(_heap.elements())
 
 
-def load_csv(filename):
-    data = []
-    with open(filename, 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            data.append(row)
-    return data
-
-
-def save_csv(filename, data):
-    with open(filename, 'w') as f:
-        writer = csv.writer(f)
-        for row in data:
-            writer.writerow(row)
-
-
 def normalize(_list):
     for i in range(1, len(_list)):
         _list[i] = _list[i] > 127 and 1 or 0
     return _list
+
 
 if __name__ == '__main__':
     print("load data...")
     train_set = load_csv("train.csv")
     test_set = load_csv("test.csv")
     print("init data...")
-    train_set = [list(map(int, x)) for x in train_set[1:]]
-    train_set = [normalize(x) for x in train_set]
-    test_set = [list(map(int, [1] + x)) for x in test_set[1:]]
-    test_set = [normalize(x) for x in test_set]
+    # train_set = [list(map(int, x)) for x in train_set[1:]]
+    # train_set = [normalize(x) for x in train_set]
+    # test_set = [list(map(int, [1] + x)) for x in test_set[1:]]
+    # test_set = [normalize(x) for x in test_set]
 
-    train_set = np.array(train_set, dtype=np.int32)
-    test_set = np.array(test_set, dtype=np.int32)
-    print("knn trainning...")
-    knn = KNN(train_set, 199)
-    print("knn test...")
-    submission = []
-    test_count = len(test_set)
-    submission.append(["ImageId", "Label"])
-    for i in range(test_count):
-        label = knn.classifier(test_set[i])
-        submission.append([i + 1, label])
-    save_csv("submission.csv", submission)
+    # train_set = np.array(train_set, dtype=np.int32)
+    # test_set = np.array(test_set, dtype=np.int32)
+    # print("knn trainning...")
+    # knn = KNN(train_set, 199)
+    # print("knn test...")
+    # submission = []
+    # test_count = len(test_set)
+    # submission.append(["ImageId", "Label"])
+    # for i in range(test_count):
+    #     label = knn.classifier(test_set[i])
+    #     submission.append([i + 1, label])
+    # save_csv("submission.csv", submission)
