@@ -332,15 +332,15 @@ if __name__ == '__main__':
     decision_tree = decision_tree(
         train_set, id_index=0, label_index=1, algorithm='c45')
     decision_tree.fit()
-    tp.createPlot(decision_tree.tree())
-    # submission = []
-    # submission.append(['PassengerId', 'Survived'])
-    # count = len(test_set)
-    # right_count = 0
-    # for i in range(count):
-    #     label = decision_tree.classifier(test_set[i])
-    #     submission.append([test_set[i][0], label])
-    #     if label == gender_submission[i + 1][1]:
-    #         right_count += 1
-    # save_csv('submission.csv', submission)
-    # print(str(right_count) + "/" + str(count))
+    # tp.createPlot(decision_tree.tree())
+    submission = []
+    submission.append(['PassengerId', 'Survived'])
+    count = len(test_set)
+    right_count = 0
+    for i in range(count):
+        label = decision_tree.classifier(test_set[i])
+        submission.append([test_set[i][0], label])
+        if label == gender_submission[i + 1][1]:
+            right_count += 1
+    save_csv('submission.csv', submission)
+    print(str(right_count) + "/" + str(count))
