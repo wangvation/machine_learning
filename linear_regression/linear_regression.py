@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 import sys
 sys.path.append("../common")
-# sys.path.append("../dataset")
 from csv_utils import *
 
 
@@ -25,12 +24,12 @@ class linear_classifier(object):
             self.gradient_descent(iterations=10000, alpha=0.0003)
 
     def gradient_descent(self, iterations=10000, alpha=0.001):
-        # 梯度下降
+        # gradient_descent
         m, n = np.shape(self.__train_set)
         data = np.ones((m, n + 1))
         data[:, 1:] = self.__train_set
         data = np.mat(data, dtype=np.float32)
-        self.__thet = np.random.rand(n + 1, 1)
+        self.__thet = np.random.rand(n + 1, 1) - 0.5
         for i in range(iterations):
             h = np.dot(data, self.__thet)
             err = h - self.__target_mat
