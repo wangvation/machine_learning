@@ -110,6 +110,7 @@ $$\frac{\partial L}{\partial w}=\frac{1}{N}(2X^TXw−2X^Ty)=0(3)$$
 $$⇒X^TXw=X^Ty$$
 $$⇒w=(X^TX)^{−1}X^Ty$$
 ## 梯度下降算法
+
 ### 特征缩放
 参考链接<br/>
 [机器学习经典算法之-----最小二乘法](http://www.cnblogs.com/iamccme/archive/2013/05/15/3080737.html)<br/>

@@ -3,9 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D
-import sys
-sys.path.append("../common")
-from csv_utils import *
+import pandas as pd
 
 
 class linear_classifier(object):
@@ -29,7 +27,7 @@ class linear_classifier(object):
         data = np.ones((m, n + 1))
         data[:, 1:] = self.__train_set
         data = np.mat(data, dtype=np.float32)
-        self.__thet = np.random.rand(n + 1, 1) - 0.5
+        self.__thet = np.random.rand(n + 1, 1)
         for i in range(iterations):
             h = np.dot(data, self.__thet)
             err = h - self.__target_mat
@@ -50,30 +48,32 @@ class linear_classifier(object):
         pass
 
     def classifier(self, item):
-        item = [1] + item
-        return np.dot(np.mat(item), self.__thet)
+        n = len(item)
+        tmp = np.ones((1, n + 1))
+        tmp[0, 1:] = item
+        return np.dot(tmp, self.__thet)
 
     def get_thet(self):
         return self.__thet
 
 
 if __name__ == '__main__':
-    data = load_csv('../dataset/machine/machine.data')
-    tartget = [x[8] for x in data]
-    data = [x[2:] for x in data]
-    train_set = []
-    for row in data:
-        del row[-2]
-    for row in data:
-        train_set.append([float(item) for item in row])
-    tartget = [float(x) for x in tartget]
-    # 最小二乘法
-    classifier1 = linear_classifier(
-        train_set, tartget, algorithm='least_squares')
-    classifier1.fit()
-    print(classifier1.classifier(train_set[191]))
-    # 梯度下降
+    data = pd.read_csv('../dataset/machine/machine.data')
+    collist = ['MYCT', 'MMIN', 'MMAX', 'CACH', 'CHMIN', 'CHMAX', 'PRP']
+    for col in collist:
+        data[col] = data[col].apply(lambda x: float(x))
+        min = data[col].min()
+        max = data[col].max()
+        std = data[col].std()
+        data[col] = data[col].apply(lambda x: (
+            x - min) / (max - min))
+    train_set = data[collist[:-1]].values
+    tartget = data[collist[-1]].values
+    # classifier1 = linear_classifier(
+    #     train_set, tartget, algorithm='least_squares')
+    # classifier1.fit()
+    # print(classifier1.classifier(train_set[0]))
     classifier2 = linear_classifier(
         train_set, tartget, algorithm='gradient_descent')
     classifier2.fit()
-    print(classifier2.classifier(train_set[191]))
+    print(classifier2.classifier(train_set[0]))
