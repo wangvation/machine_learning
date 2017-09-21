@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d, Axes3D
 import pandas as pd
 
 
@@ -14,14 +13,15 @@ class linear_classifier(object):
         self.__target_mat = np.mat(label_set).T
         self.__algorithm = algorithm
         self.__thet = None
+        self.__errores = []
 
     def fit(self):
         if self.__algorithm == 'least_squares':
             self.least_squares()
         elif self.__algorithm == 'gradient_descent':
-            self.gradient_descent(iterations=10000, alpha=0.0003)
+            self.gradient_descent(iterations=100000, alpha=0.03)
 
-    def gradient_descent(self, iterations=10000, alpha=0.001):
+    def gradient_descent(self, iterations=100000, alpha=0.03):
         # gradient_descent
         m, n = np.shape(self.__train_set)
         data = np.ones((m, n + 1))
@@ -31,7 +31,9 @@ class linear_classifier(object):
         for i in range(iterations):
             h = np.dot(data, self.__thet)
             err = h - self.__target_mat
-            delta_thet = (1 / m) * alpha * np.dot(data.T, err)
+            if i % (iterations / 100) == 0:
+                self.__errores.append(np.dot(err.T, err))
+            delta_thet = (1.0 / m) * alpha * np.dot(data.T, err)
             self.__thet = self.__thet - delta_thet
         pass
 
@@ -56,24 +58,34 @@ class linear_classifier(object):
     def get_thet(self):
         return self.__thet
 
+    def get_errores(self):
+        return self.__errores
+
 
 if __name__ == '__main__':
     data = pd.read_csv('../dataset/machine/machine.data')
+    _xdata = data['PRP'].copy()
     collist = ['MYCT', 'MMIN', 'MMAX', 'CACH', 'CHMIN', 'CHMAX', 'PRP']
     for col in collist:
         data[col] = data[col].apply(lambda x: float(x))
         min = data[col].min()
         max = data[col].max()
-        std = data[col].std()
+        # min_max_normalize
         data[col] = data[col].apply(lambda x: (
             x - min) / (max - min))
     train_set = data[collist[:-1]].values
     tartget = data[collist[-1]].values
-    # classifier1 = linear_classifier(
-    #     train_set, tartget, algorithm='least_squares')
-    # classifier1.fit()
-    # print(classifier1.classifier(train_set[0]))
+    classifier1 = linear_classifier(
+        train_set, tartget, algorithm='least_squares')
+    classifier1.fit()
+    print('--------least_squares--------')
+    print(classifier1.get_thet())
     classifier2 = linear_classifier(
         train_set, tartget, algorithm='gradient_descent')
     classifier2.fit()
-    print(classifier2.classifier(train_set[0]))
+    print('-------gradient_descent------')
+    print(classifier2.get_thet())
+    y = np.array(classifier2.get_errores()).reshape(1, 100)[0]
+    x = np.arange(100)
+    plt.plot(x, y)
+    plt.show()
