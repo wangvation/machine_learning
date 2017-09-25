@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys
 sys.path.append("../common")
-from csv_utils import *
+import pandas as pd
 
 
 class nvaie_bayesian(object):
@@ -87,14 +87,14 @@ class nvaie_bayesian(object):
 
 
 if __name__ == '__main__':
-    train_set = load_csv("train.csv")
+    train_set = pd.read_csv("train.csv").values
     for item in train_set:
         del(item[3])
     label_set = [x[1] for x in train_set[1:]]
-    test_set = load_csv("test.csv")[1:]
+    test_set = pd.read_csv("test.csv").values
     for item in test_set:
         del(item[2])
-    gender_submission = load_csv("gender_submission.csv")[1:]
+    gender_submission = pd.read_csv("gender_submission.csv").values
     # length = len(train_set)
     # splie_index = length * 3 // 4
     # test_set = [x[1:] for x in train_set[splie_index:]]

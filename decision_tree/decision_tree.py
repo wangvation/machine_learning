@@ -5,7 +5,7 @@ sys.path.append("../common")
 import math
 import matplotlib as plt
 import treePlotter as tp
-from csv_utils import *
+import pandas as pd
 
 
 class decision_tree(object):
@@ -325,9 +325,9 @@ def load_data(file):
 
 
 if __name__ == '__main__':
-    train_set = load_csv("train.csv")
-    test_set = load_csv("test.csv")
-    gender_submission = load_csv("gender_submission.csv")
+    train_set = pd.read_csv("train.csv").values
+    test_set = pd.read_csv("test.csv").values
+    gender_submission = pd.read_csv("gender_submission.csv").values
     test_set = test_set[1:]
     decision_tree = decision_tree(
         train_set, id_index=0, label_index=1, algorithm='c45')

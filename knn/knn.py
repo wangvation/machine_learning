@@ -9,7 +9,7 @@ import numpy as np
 import pycuda.driver as drv
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
-from csv_utils import *
+import pandas as pd
 mod = SourceModule("""
     #include<math.h>
     #include <cuda_runtime.h>
@@ -118,8 +118,8 @@ def normalize(_list):
 
 if __name__ == '__main__':
     print("load data...")
-    train_set = load_csv("train.csv")
-    test_set = load_csv("test.csv")
+    train_set = pd.read_csv("train.csv").values
+    test_set = pd.read_csv("test.csv").values
     print("init data...")
     # train_set = [list(map(int, x)) for x in train_set[1:]]
     # train_set = [normalize(x) for x in train_set]
