@@ -2,26 +2,25 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
+filepath_or_buffer, sep=sep, delimiter=None, header='infer', names=None, index_col=None, usecols=None, squeeze=False, prefix=None, mangle_dupe_cols=True, dtype=None, engine=None, converters=None, true_values=None, false_values=None, skipinitialspace=False, skiprows=None, nrows=None, na_values=None, keep_default_na=True, na_filter=True, verbose=False, skip_blank_lines=True, parse_dates=False, infer_datetime_format=False, keep_date_col=False, date_parser=None, dayfirst=False, iterator=False, chunksize=None, compression='infer', thousands=None, decimal=b'.', lineterminator=None, quotechar='"', quoting=csv.QUOTE_MINIMAL, escapechar=None, comment=None, encoding=None, dialect=None, tupleize_cols=False, error_bad_lines=True, warn_bad_lines=True, skipfooter=0, skip_footer=0, doublequote=True, delim_whitespace=False, as_recarray=False, compact_ints=False, use_unsigned=False, low_memory=_c_parser_defaults['low_memory'], buffer_lines=None, memory_map=False, float_precision=None
 
 
 class linear_classifier(object):
     """docstring for  linear_classifier"""
 
-    def __init__(self, train_set, label_set, algorithm='gradient_descent'):
+    def __init__(self, train_set, label_set):
         self.__train_set = train_set
         self.__target_mat = np.mat(label_set).T
-        self.__algorithm = algorithm
         self.__thet = None
         self.__errores = []
 
-    def fit(self):
-        if self.__algorithm == 'least_squares':
-            self.least_squares()
-        elif self.__algorithm == 'gradient_descent':
-            self.gradient_descent(iterations=100000, alpha=0.03)
+    def fit(self, algorithm='gradient_descent', iterations=100000, alpha=0.03):
+        if algorithm == 'least_squares':
+            self.__least_squares()
+        elif algorithm == 'gradient_descent':
+            self.__gradient_descent(iterations, alpha)
 
-    def gradient_descent(self, iterations=100000, alpha=0.03):
+    def __gradient_descent(self, iterations=100000, alpha=0.03):
         # gradient_descent
         m, n = np.shape(self.__train_set)
         data = np.ones((m, n + 1))
@@ -37,7 +36,7 @@ class linear_classifier(object):
             self.__thet = self.__thet - delta_thet
         pass
 
-    def least_squares(self):
+    def __least_squares(self):
         '''
         w=(X.T*X).I*X.T*y
         '''
@@ -76,13 +75,14 @@ if __name__ == '__main__':
     train_set = data[collist[:-1]].values
     tartget = data[collist[-1]].values
     classifier1 = linear_classifier(
-        train_set, tartget, algorithm='least_squares')
-    classifier1.fit()
+        train_set, tartget)
+    classifier1.fit(algorithm='least_squares')
     print('--------least_squares--------')
     print(classifier1.get_thet())
     classifier2 = linear_classifier(
-        train_set, tartget, algorithm='gradient_descent')
-    classifier2.fit()
+        train_set, tartget)
+    classifier2.fit(algorithm='gradient_descent',
+                    iterations=100000, alpha=0.03)
     print('-------gradient_descent------')
     print(classifier2.get_thet())
     y = np.array(classifier2.get_errores()).reshape(1, 100)[0]
