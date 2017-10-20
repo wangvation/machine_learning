@@ -3,12 +3,13 @@
 import numpy as np
 import pandas as pd
 import math
+import random
 
 
 class svm(object):
     """docstring for svm"""
 
-    def __init__(self, C, **kernel_opt):
+    def __init__(self, C, max_iter, **kernel_opt):
         """y=wx+b"""
         self.kernel_opt = kernel_opt
         self.alphas = None
@@ -16,14 +17,17 @@ class svm(object):
         self.kernel_mat = None
         self.errors = None
         self.support_vec = None
+        self.max_iter = max_iter
         self.C = C
         self.bias = 0.0
 
-    def fit(self, data_mat, label_set):
-        self.data_mat = data_mat
-        self.label_mat = np.mat(label_set)
+    def fit(self, data_set, label_set):
+        self.data_mat = np.mat(data_set)
+        self.label_mat = np.mat(label_set).T
         self.data_size = len(label_set)
-        self.kernel_mat = self.kernel_trans(self.kernel_opt)
+        self.kernel_mat = self.kernel_trans()
+        self.smo()
+        return self
 
     def get_bounds(self, alpha1, alpha2, label1, label2):
         if label1 == label2:
@@ -49,34 +53,32 @@ class svm(object):
         return (bias1 + bias2) / 2
 
     def clac_omega(self):
-        sv_index = np.nonzero(self.alphas > 0)[1]
-        self.omega = np.multiply(
-            self.alphas[sv_index], self.label_mat[sv_index])
+        self.omega = np.multiply(self.alphas.T, self.label_mat.T)
 
-    def kernel(self, x, z, **kernel_opt):
+    def kernel(self, x, z):
         '''
         rbf kernel: exp(-||x-z||^2/(2*sigma^2))
         linear kernel:x.T*z
         '''
-        func = kernel_opt['func']
+        func = self.kernel_opt['func']
         if func == 'rbf':
-            sigma = kernel_opt['sigma']
+            sigma = self.kernel_opt['sigma']
             delta = x - z
             delta = delta * delta.T
             return math.exp(-delta / (2 * sigma**2))
         elif func == 'linear':
             return np.dot(x, z.T)
 
-    def kernel_trans(self, **kernel_opt):
+    def kernel_trans(self):
         m, n = np.shape(self.data_mat)
         kernel_mat = np.zeros((m, m))
         for i in range(m):
             for j in range(m):
                 kernel_mat[i, j] = self.kernel(
-                    self.data_mat[i, :], self.data_mat[j, :], kernel_opt)
+                    self.data_mat[i, :], self.data_mat[j, :])
         return kernel_mat
 
-    def update_alpha_bias(self, toler, index1, index2):
+    def update_alpha_bias(self, index1, index2):
 
         alpha1 = self.alphas[index1]
         alpha2 = self.alphas[index2]
@@ -111,7 +113,7 @@ class svm(object):
         return 1
 
     def is_meet_KKT(self, index):
-        func_dist = self.label_mat[index] * \
+        func_dist = float(self.label_mat[index, 0]) * \
             self.predict(index)
         if func_dist <= 1:
             return self.alphas[index] == self.C
@@ -134,20 +136,20 @@ class svm(object):
         return second_index
 
     def update_errors(self):
-        self.errors = (np.dot(self.omega, self.kernel_mat.T) +
+        self.errors = (np.dot(self.omega, self.kernel_mat.T).T +
                        self.bias) - self.label_mat
         return self.errors
 
-    def smo(self, toler, maxIter):
+    def smo(self):
         self.bias = 0.0
         self.alphas = np.zeros((self.data_size, 1), dtype=np.float32)
         _iter = 0
         entier_flag = True
         update_num = 0
-        self.calc_omega(self.alphas)
+        self.clac_omega()
         self.update_errors()
 
-        while (_iter < maxIter and update_num > 0) or entier_flag:
+        while (_iter < self.max_iter and update_num > 0) or entier_flag:
             update_num = 0
             if entier_flag:
                 valid_indexes = range(self.data_size)
@@ -157,7 +159,7 @@ class svm(object):
                     index_2 = self.select_second_alpha(i, valid_indexes)
                     if index_2 is -1:
                         continue
-                    update_num += self.update_alpha_bias(toler, i, index_2)
+                    update_num += self.update_alpha_bias(i, index_2)
                 entier_flag = False
             else:
                 valid_indexes = np.nonzero(np.multiply(
@@ -167,7 +169,7 @@ class svm(object):
                         i, valid_indexes)
                     if index_2 is -1:
                         continue
-                    update_num += self.update_alpha_bias(toler, i, index_2)
+                    update_num += self.update_alpha_bias(i, index_2)
 
             self.clac_omega()
             self.update_errors()
@@ -180,15 +182,79 @@ class svm(object):
         return self.support_vec
 
     def predict(self, index):
-        return np.dot(self.omega, self.kernel_mat[:, index]) + self.bias
+        return float(np.dot(self.omega,
+                            np.mat(self.kernel_mat[:, index]).T)) + self.bias
 
     def classfier(self, X):
-        kernels = np.mat([self.kernel(sv, X) for sv in self.support_vec])
-        y = np.dot(self.omega, kernels.T) + self.bias
+        sv_index = np.nonzero(self.alphas > 0)[1]
+        alphas = self.alphas[sv_index]
+        labels = self.label_mat[sv_index]
+        ret = 0
+        for i in sv_index:
+            ret += alphas[i] * labels[i] * self.kernel(self.support_vec[i], X)
+        y = ret + self.bias
         return 1 if y >= 0 else -1
 
 
 if __name__ == '__main__':
-    data = pd.read_csv('../dataset/iris/iris.data')
+    data = pd.read_csv('../dataset/iris/bezdekIris.data')
+    col_list = ['sepal_length', 'sepal_width',
+                'petal_length', 'petal_width', 'Class']
 
-    pass
+    setosa_versicolor = data[data.Class != 'Iris-virginica']
+    setosa_virginica = data[data.Class != 'Iris-versicolor']
+    versicolor_virginica = data[data.Class != 'Iris-setosa']
+
+    setosa_versicolor[col_list[-1]] = \
+        setosa_versicolor[col_list[-1]].apply(
+        lambda x: 1 if x == 'Iris-versicolor' else -1)
+    setosa_virginica[col_list[-1]] = \
+        setosa_virginica[col_list[-1]].apply(
+        lambda x: 1 if x == 'Iris-virginica' else -1)
+    versicolor_virginica[col_list[-1]] = \
+        versicolor_virginica[col_list[-1]].apply(
+        lambda x: 1 if x == 'Iris-versicolor' else -1)
+
+    result_dict = {"setosa_versicolor": {-1: "Iris-setosa",
+                                         1: "Iris-versicolor"},
+                   "setosa_virginica": {-1: "Iris-setosa",
+                                        1: "Iris-virginica"},
+                   "versicolor_virginica": {-1: "Iris-virginica",
+                                            1: "Iris-versicolor"}
+                   }
+
+    svm_setosa_versicolor = svm(C=100, max_iter=10000, func='linear')
+    svm_setosa_versicolor.fit(setosa_versicolor[col_list[:-1]].values,
+                              setosa_versicolor[col_list[-1]].values,)
+    svm_setosa_virginica = svm(C=100, max_iter=10000, func='linear')\
+        .fit(setosa_virginica[col_list[:-1]].values,
+             setosa_virginica[col_list[-1]].values)
+    svm_versicolor_virginica = svm(C=100, max_iter=10000, func='linear')\
+        .fit(versicolor_virginica[col_list[:-1]].values,
+             versicolor_virginica[col_list[-1]].values)
+
+    svms = {"setosa_versicolor": svm_setosa_versicolor,
+            "setosa_virginica": svm_setosa_virginica,
+            "versicolor_virginica": svm_versicolor_virginica}
+    test_index = [random.randint(0, 149) for _ in range(20)]
+    right_num = 0
+    for index in test_index:
+        class_dict = {
+            'Iris-setosa': 0,
+            'Iris-virginica': 0,
+            'Iris-versicolor': 0
+        }
+        test_data = data.iloc[index]
+        for name, _svm in svms.items():
+            result_label = _svm.classfier(test_data[col_list[:-1]].values)
+            result_class = result_dict[name][result_label]
+            class_dict[result_class] += 1
+            label = None
+            max_vote = 0
+            for _class, value in class_dict.items():
+                if value > max_vote:
+                    max_vote = value
+                    label = _class
+            if label == test_data[col_list[-1]]:
+                right_num += 1
+    print(right_num)

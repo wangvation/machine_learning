@@ -1,23 +1,21 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 import sys
-sys.path.append("../common")
-import heap
-import time
-import math
 import numpy as np
 import pycuda.driver as drv
-import pycuda.autoinit
 from pycuda.compiler import SourceModule
 import pandas as pd
+sys.path.append("../common")
+import heap
 mod = SourceModule("""
-    #include<math.h>
-    #include <cuda_runtime.h>
+    # include<math.h>
+    # include <cuda_runtime.h>
     __global__ void manhattan_distance(int *sample_set,int *item,int *out)
     {
         int pixel_index =threadIdx.x;
         int sample_index=blockIdx.x;
-        int x=abs(sample_set[sample_index*blockDim.x+pixel_index]-item[pixel_index]);
+        int x=abs(sample_set[sample_index*blockDim.x+pixel_index]
+                  -item[pixel_index]);
         x=atomicAdd(&out[sample_index],x);
         atomicExch(&out[sample_index],x);
     }
@@ -99,10 +97,9 @@ class KNN(object):
         _heap = heap.Heap(type="max_heap", capacity=self.__K)
         sample_count = len(self.__sample_set)
         dist_set = np.zeros((sample_count, 1), dtype=np.int32)
-        # manhattan_distance_gpu(drv.In(self.__sample_set), drv.In(item), drv.InOut(
-        #     dist_set), block=(len(item), 1, 1), grid=(sample_count, 1, 1))
-        eulidean_distance_gpu(drv.In(self.__sample_set), drv.In(item), drv.InOut(
-            dist_set), block=(len(item), 1, 1), grid=(sample_count, 1, 1))
+        eulidean_distance_gpu(drv.In(self.__sample_set), drv.In(item),
+                              drv.InOut(dist_set), block=(len(item), 1, 1),
+                              grid=(sample_count, 1, 1))
         for i in range(sample_count):
             data = Data(self.__sample_set[i][0], dist_set[i])
             if _heap.size() < self.__K or data < _heap.top():
