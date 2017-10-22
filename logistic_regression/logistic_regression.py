@@ -60,6 +60,7 @@ if __name__ == '__main__':
                 'Normal_Nucleoli', 'Mitoses', 'Class']
     # remove the abnormal data
     data = data[data.Bare_Nuclei != '?']
+    data.iloc[:, 6] = data.iloc[:, 6].apply(lambda x: float(x))
     # 0 for benign, 1 for malignant
     data[col_list[-1]] = data[col_list[-1]].apply(lambda x: 1 if x == 4 else 0)
     data_size = len(data.values)
