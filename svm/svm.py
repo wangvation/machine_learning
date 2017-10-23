@@ -254,5 +254,5 @@ if __name__ == '__main__':
                 label = _class
         if label == test_data.iloc[-1]:
             right_num += 1
-        print(class_dict)
+        # print(class_dict)
     print(str(right_num) + '/' + str(len(test_index)))
