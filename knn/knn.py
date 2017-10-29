@@ -115,8 +115,8 @@ def normalize(_list):
 
 if __name__ == '__main__':
     print("load data...")
-    train_set = pd.read_csv("train.csv").values
-    test_set = pd.read_csv("test.csv").values
+    train_set = pd.read_csv("../dataset/digit_recognizer/train.csv").values
+    test_set = pd.read_csv("../dataset/digit_recognizer/test.csv").values
     print("init data...")
     # train_set = [list(map(int, x)) for x in train_set[1:]]
     # train_set = [normalize(x) for x in train_set]

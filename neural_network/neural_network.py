@@ -1,58 +1,119 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
+import random
 
 
-class Neural_Network(object):
-    """docstring for Neural_Network"""
+class neural_network(object):
+    """docstring for neural_network"""
 
-    def __init__(self, layers=[], step=0.3,
+    def __init__(self, layers=[], alpha=0.3, toler=0.1,
                  max_iter=10000, active_func='sigmoid'):
         self.layers = layers
-        self.step = step
+        self.alpha = alpha
         self.max_iter = max_iter
         self.active_func = active_func
+        self.toler = toler
 
-    def fit(self, data_set, label_set):
+    def fit(self, data_set, label_set, method='BGD'):
         self.data_mat = np.mat(data_set)
-        self.label_set = np.mat(label_set)
+        self.label_mat = np.mat(label_set)
         self.weights = []
         self.bias = []
         layer_size = len(self.layers)
         for i in range(1, layer_size):
             n = self.layers[i - 1]
             m = self.layers[i]
-            self.weights.append(np.random.rand(m, n))
-            self.bias.append(np.random.rand(m, 1))
+            self.weights.append(np.random.rand(m, n) - 0.5)
+            self.bias.append(np.random.rand(m, 1) - 0.5)
 
-        self.gradient_descent()
+        self.gradient_descent(method)
 
-    def gradient_descent(self):
+    def gradient_descent(self, method):
         layer_size = len(self.layers)
+        data_size, _ = np.shape(self.data_mat)
         _iter = 0
         while _iter < self.max_iter:
-            outs = []
-            targets = self.label_set[0]
-            outs.append(self.data_mat[0])
-            for i in range(1, layer_size):
-                Oi = np.dot(self.weights[i - 1],
-                            outs[i - 1].T) + self.bias[i - 1]
-                Oi = self.simmoid(Oi)
-                outs.append(Oi)
-            i = layer_size - 1
-            while i >= 0:
-                delta = np.multiply(outs[i], (1 - outs[i]))
-                delta = np.multiply(delta, outs[i] - targets)
-                for j in range(self.layers[i - 1]):
-                    self.weights[i][:, j] -= self.step * delta * outs[i][j]
-                self.bias[i] -= self.step * delta
-                i -= 1
-                pass
+            if method == 'BGD':  # Batch gradient descent
+                indexes = range(data_size)
+                m = data_size
+            elif method == 'SGD':  # Stochastic gradient descent
+                indexes = [random.randint(0, data_size - 1)]
+                m = 1
+            elif method == 'MBGD':  # Mini-batch gradient descent
+                m = 10
+                indexes = [random.randint(0, data_size - 1) for x in range(m)]
+            weights_delta = [np.zeros(w.shape) for w in self.weights]
+            bias_delta = [np.zeros(b.shape) for b in self.bias]
+            errors = 0
+            for i in indexes:
+                outs = []
+                target = self.label_mat[i].T
+                outs.append(self.data_mat[i].T)
+                for j in range(1, layer_size):
+                    Oj = np.dot(self.weights[j - 1],
+                                outs[j - 1]) + self.bias[j - 1]
+                    outs.append(self.sigmoid(Oj))
+                output_layer = layer_size - 1
+                error = self.get_item_error(outs[output_layer], target)
+                errors += error
+                if error <= 0.01:
+                    continue
+                delta = -np.multiply(target - outs[output_layer],
+                                     self.derived_sigmoid(outs[output_layer]))
+                layer = output_layer - 1
+                while layer >= 0:
+                    weights_delta[layer] += np.dot(delta, outs[layer].T)
+                    bias_delta[layer] += delta
+                    delta = np.multiply(np.dot(self.weights[layer].T, delta),
+                                        self.derived_sigmoid(outs[layer]))
+                    layer -= 1
+            for k in range(layer_size - 1):
+                self.weights[k] -= self.alpha * (1.0 / m) * weights_delta[k]
+                self.bias[k] -= self.alpha * (1.0 / m) * bias_delta[k]
+            if errors / m < self.toler:
+                break
             _iter += 1
 
-        pass
+    def get_item_error(self, out, y):
+        minus = out - y
+        return np.sum(np.multiply(minus, minus)) / 2.0
 
-    def simmoid(self, x):
+    def classifier(self, x):
+        layer_size = len(self.layers)
+        outs = []
+        outs.append(np.mat(x).T)
+        for i in range(1, layer_size):
+            Oi = np.dot(self.weights[i - 1],
+                        outs[i - 1]) + self.bias[i - 1]
+            Oi = self.sigmoid(Oi)
+            outs.append(Oi)
+        return np.argmax(outs[-1])
+
+    def derived_sigmoid(self, y):
+        return np.multiply(y, (1 - y))
+
+    def sigmoid(self, x):
         return 1.0 / (1.0 + np.exp(-x))
+
+
+if __name__ == '__main__':
+    data = pd.read_csv("../dataset/digit_recognizer/train.csv")
+    data.iloc[:, 1:] = data.iloc[:, 1:].apply(lambda x: x / 255.0)
+    test_set = pd.read_csv("../dataset/digit_recognizer/test.csv")
+    test_set = test_set.apply(lambda x: x / 255.0)
+    test_set = test_set.values
+    label_set = pd.get_dummies(data['label']).values
+    train_set = data.iloc[:, 1:].values
+    nn = neural_network(layers=[784, 64, 16, 10], alpha=0.1, toler=0.05,
+                        max_iter=10000, active_func='sigmoid')
+    nn.fit(train_set, label_set, method='MBGD')
+    test_count = len(test_set)
+    submission = []
+    for i in range(test_count):
+        label = nn.classifier(test_set[i])
+        submission.append([i + 1, label])
+    submission_df = pd.DataFrame(data=submission, columns=['ImageId', 'Label'])
+    submission_df.to_csv(
+        '../dataset/digit_recognizer/submission.csv', index=False)
