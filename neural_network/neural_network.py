@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import random
+import math
 
 
 class neural_network(object):
@@ -16,7 +17,7 @@ class neural_network(object):
         self.active_func = active_func
         self.toler = toler
 
-    def fit(self, data_set, label_set, method='BGD'):
+    def fit(self, data_set, label_set, method='BGD', cost='MSE'):
         self.data_mat = np.mat(data_set)
         self.label_mat = np.mat(label_set)
         self.weights = []
@@ -28,9 +29,34 @@ class neural_network(object):
             self.weights.append(np.random.rand(m, n) - 0.5)
             self.bias.append(np.random.rand(m, 1) - 0.5)
 
-        self.gradient_descent(method)
+        self.gradient_descent(method, cost)
 
-    def gradient_descent(self, method):
+    def forward(self, input, weights, bias):
+        outs = []
+        outs.append(input.T)
+        layer_size = len(self.layers)
+        for j in range(1, layer_size):
+            Oj = np.dot(weights[j - 1],
+                        outs[j - 1]) + bias[j - 1]
+            outs.append(self.sigmoid(Oj))
+        return outs
+
+    def cross_entropy(self, a, y):
+        return -(y * math.log(a) + (1 - y) * math.log(1 - a))
+
+    def softmax(self, x):
+        _sum = np.sum(x)
+        return x / _sum
+
+    def relu(self, x):
+        return np.apply_along_axis(func1d=lambda item: 0 if item < 0 else item,
+                                   axis=1, arr=x)
+
+    def derived_relu(self, y):
+        return np.apply_along_axis(func1d=lambda item: 0 if item <= 0 else 1,
+                                   axis=1, arr=y)
+
+    def gradient_descent(self, method, cost):
         layer_size = len(self.layers)
         data_size, _ = np.shape(self.data_mat)
         _iter = 0
@@ -60,14 +86,17 @@ class neural_network(object):
                 errors += error
                 if error <= 0.01:
                     continue
-                delta = -np.multiply(target - outs[output_layer],
-                                     self.derived_sigmoid(outs[output_layer]))
+                if cost == 'cross_entropy' or cost == 'log_likelihood':
+                    delta = outs[output_layer] - target
+                else:
+                    delta = -np.multiply(target - outs[output_layer],
+                                         self.sigmoid_prime(outs[output_layer]))
                 layer = output_layer - 1
                 while layer >= 0:
                     weights_delta[layer] += np.dot(delta, outs[layer].T)
                     bias_delta[layer] += delta
                     delta = np.multiply(np.dot(self.weights[layer].T, delta),
-                                        self.derived_sigmoid(outs[layer]))
+                                        self.sigmoid_prime(outs[layer]))
                     layer -= 1
             for k in range(layer_size - 1):
                 self.weights[k] -= self.alpha * (1.0 / m) * weights_delta[k]
@@ -91,7 +120,7 @@ class neural_network(object):
             outs.append(Oi)
         return np.argmax(outs[-1])
 
-    def derived_sigmoid(self, y):
+    def sigmoid_prime(self, y):
         return np.multiply(y, (1 - y))
 
     def sigmoid(self, x):
@@ -108,7 +137,7 @@ if __name__ == '__main__':
     train_set = data.iloc[:, 1:].values
     nn = neural_network(layers=[784, 64, 16, 10], alpha=0.1, toler=0.05,
                         max_iter=10000, active_func='sigmoid')
-    nn.fit(train_set, label_set, method='MBGD')
+    nn.fit(train_set, label_set, method='MBGD', cost='cross_entropy')
     test_count = len(test_set)
     submission = []
     for i in range(test_count):

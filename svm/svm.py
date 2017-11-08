@@ -4,12 +4,13 @@ import numpy as np
 import pandas as pd
 import math
 import random
+import copy
 
 
 class svm(object):
     """docstring for svm"""
 
-    def __init__(self, C, max_iter, **kernel_opt):
+    def __init__(self, C, toler, max_iter, **kernel_opt):
         """y=wx+b"""
         self.kernel_opt = kernel_opt
         self.alphas = None
@@ -18,6 +19,7 @@ class svm(object):
         self.support_vec = None
         self.max_iter = max_iter
         self.C = C
+        self.toler = toler
         self.bias = 0.0
 
     def fit(self, data_set, label_set):
@@ -77,8 +79,8 @@ class svm(object):
 
     def update_alpha_bias(self, index1, index2):
 
-        alpha1_old = self.alphas[index1]
-        alpha2_old = self.alphas[index2]
+        alpha1_old = copy.deepcopy(self.alphas[index1])
+        alpha2_old = copy.deepcopy(self.alphas[index2])
         label1 = self.label_mat[index1]
         label2 = self.label_mat[index2]
         error1 = self.errors[index1]
@@ -117,13 +119,23 @@ class svm(object):
         return 1
 
     def is_meet_KKT(self, index):
-        func_dist = float(self.label_mat[index]) * self.predict(index)
-        if func_dist <= 1:
-            return self.alphas[index] == self.C
-        if func_dist == 1:
-            return 0 < self.alphas[index] < self.C
-        if func_dist >= 1:
-            return self.alphas[index] == 0
+            #     1、if yE>Toler then α>0
+        #     2、if yE<-Toler then α<C
+        # func_dist = float(self.label_mat[index]) * self.predict(index)
+        # if func_dist <= 1:
+        #     return self.alphas[index] == self.C
+        # if func_dist == 1:
+        #     return 0 < self.alphas[index] < self.C
+        # if func_dist >= 1:
+        #     return self.alphas[index] == 0
+        label_i = self.label_mat[index]
+        error_i = self.errors[index]
+        alpha = self.alphas[index]
+        if((label_i * error_i < -self.toler and alpha < self.C) or
+                (label_i * error_i > self.toler and alpha > 0)):
+            return False
+        else:
+            return True
 
     def select_second_alpha(self, first_index,
                             valid_indexes, debug=False):
@@ -131,7 +143,7 @@ class svm(object):
         second_index = -1
         error_1 = self.errors[first_index]
         for j in valid_indexes:
-            if j is not first_index:
+            if j is not first_index and self.is_meet_KKT(j):
                 error_j = self.errors[j]
                 error = abs(error_1 - error_j)
                 # if debug:
@@ -153,7 +165,7 @@ class svm(object):
         update_num = 0
         for i in range(self.data_size):
             self.update_errors(i)
-        debug = True
+        # debug = True
         while (_iter < self.max_iter and update_num > 0) or entier_flag:
             update_num = 0
             if entier_flag:
@@ -169,9 +181,8 @@ class svm(object):
             else:
                 valid_indexes = np.nonzero(np.multiply(
                     self.alphas < self.C, self.alphas > 0))[0]
-                if debug:
-                    debug = False
-                    print(valid_indexes)
+                # if debug:
+                #     print(len(valid_indexes))
                 for i in valid_indexes:
                     index2 = self.select_second_alpha(i, valid_indexes, True)
                     if index2 is -1:
@@ -181,6 +192,7 @@ class svm(object):
             # if _iter % 100 == 0:
             #     print(np.sum(np.array(self.errors)**2))
             _iter += 1
+        # print(self.alphas)
         self.get_support_vec()
 
     def get_support_vec(self):
@@ -228,7 +240,7 @@ if __name__ == '__main__':
     train_set = data[col_list[1:-1]].iloc[train_index].values
     label_set = data[col_list[-1]].iloc[train_index].values
     # classifier = svm(C=100, max_iter=10000, func='rbf', sigma=0.9)
-    classifier = svm(C=100, max_iter=10000, func='linear')
+    classifier = svm(C=10, toler=0.001, max_iter=10000, func='linear')
     classifier.fit(train_set, label_set)
     for i in range(len(test_label)):
         result_label = classifier.classifier(test_set[i])
