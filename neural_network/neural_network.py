@@ -10,16 +10,20 @@ class neural_network(object):
     """docstring for neural_network"""
 
     def __init__(self, layers=[], alpha=0.3, toler=0.1,
-                 max_iter=10000, active_func='sigmoid'):
+                 max_iter=10000, active_func='sigmoid',
+                 method='BGD', cost='MSE'):
         self.layers = layers
         self.alpha = alpha
         self.max_iter = max_iter
         self.active_func = active_func
         self.toler = toler
+        self.method = method
+        self.cost_function = cost
+        self.num_layers = len(layers)
 
-    def fit(self, data_set, label_set, method='BGD', cost='MSE'):
+    def fit(self, data_set, target_set):
         self.data_mat = np.mat(data_set)
-        self.label_mat = np.mat(label_set)
+        self.target_mat = np.mat(target_set)
         self.weights = []
         self.bias = []
         layer_size = len(self.layers)
@@ -29,17 +33,7 @@ class neural_network(object):
             self.weights.append(np.random.rand(m, n) - 0.5)
             self.bias.append(np.random.rand(m, 1) - 0.5)
 
-        self.gradient_descent(method, cost)
-
-    def forward(self, input, weights, bias):
-        outs = []
-        outs.append(input.T)
-        layer_size = len(self.layers)
-        for j in range(1, layer_size):
-            Oj = np.dot(weights[j - 1],
-                        outs[j - 1]) + bias[j - 1]
-            outs.append(self.sigmoid(Oj))
-        return outs
+        self.train()
 
     def cross_entropy(self, a, y):
         return -(y * math.log(a) + (1 - y) * math.log(1 - a))
@@ -48,57 +42,65 @@ class neural_network(object):
         _sum = np.sum(x)
         return x / _sum
 
-    def relu(self, x):
-        return np.apply_along_axis(func1d=lambda item: 0 if item < 0 else item,
-                                   axis=1, arr=x)
+    def forward(self, indexes):
+        outs = []
+        for i in indexes:
+            actives = []
+            actives.append(self.data_mat[i].T)
+            for j in range(1, self.num_layers):
+                Oj = np.dot(self.weights[j - 1],
+                            actives[j - 1]) + self.bias[j - 1]
+                actives.append(self.sigmoid(Oj))
+            outs.append(actives)
+        return outs
 
-    def derived_relu(self, y):
-        return np.apply_along_axis(func1d=lambda item: 0 if item <= 0 else 1,
-                                   axis=1, arr=y)
+    def get_batch(self):
+        data_size, _ = np.shape(self.data_mat)
+        if self.method == 'BGD':  # Batch gradient descent
+            indexes = range(data_size)
+        elif self.method == 'SGD':  # Stochastic gradient descent
+            indexes = [random.randint(0, data_size - 1)]
+        elif self.method == 'MBGD':  # Mini-batch gradient descent
+            m = 10
+            indexes = [random.randint(0, data_size - 1) for x in range(m)]
+        return indexes
 
-    def gradient_descent(self, method, cost):
-        layer_size = len(self.layers)
+    def back_progation(self, weights_delta, bias_delta, out, target):
+        output_layer = self.num_layers - 1
+        if self.cost_function == 'cross_entropy' or\
+                self.cost_function == 'log_likelihood':
+            delta = out[output_layer] - target
+        else:
+            delta = -np.multiply(target - out[output_layer],
+                                 self.sigmoid_prime(out[output_layer]))
+        layer = output_layer - 1
+        while layer >= 0:
+            weights_delta[layer] += np.dot(delta, out[layer].T)
+            bias_delta[layer] += delta
+            delta = np.multiply(np.dot(self.weights[layer].T, delta),
+                                self.sigmoid_prime(out[layer]))
+            layer -= 1
+        return weights_delta, bias_delta
+
+    def train(self):
         data_size, _ = np.shape(self.data_mat)
         _iter = 0
         while _iter < self.max_iter:
-            if method == 'BGD':  # Batch gradient descent
-                indexes = range(data_size)
-                m = data_size
-            elif method == 'SGD':  # Stochastic gradient descent
-                indexes = [random.randint(0, data_size - 1)]
-                m = 1
-            elif method == 'MBGD':  # Mini-batch gradient descent
-                m = 10
-                indexes = [random.randint(0, data_size - 1) for x in range(m)]
+            indexes = self.get_batch()
             weights_delta = [np.zeros(w.shape) for w in self.weights]
             bias_delta = [np.zeros(b.shape) for b in self.bias]
             errors = 0
-            for i in indexes:
-                outs = []
-                target = self.label_mat[i].T
-                outs.append(self.data_mat[i].T)
-                for j in range(1, layer_size):
-                    Oj = np.dot(self.weights[j - 1],
-                                outs[j - 1]) + self.bias[j - 1]
-                    outs.append(self.sigmoid(Oj))
-                output_layer = layer_size - 1
-                error = self.get_item_error(outs[output_layer], target)
+            outs = self.forward(indexes)
+            for i, out in zip(indexes, outs):
+                target = self.target_mat[i].T
+                error = self.get_item_error(out[-1], target)
                 errors += error
                 if error <= 0.01:
                     continue
-                if cost == 'cross_entropy' or cost == 'log_likelihood':
-                    delta = outs[output_layer] - target
-                else:
-                    delta = -np.multiply(target - outs[output_layer],
-                                         self.sigmoid_prime(outs[output_layer]))
-                layer = output_layer - 1
-                while layer >= 0:
-                    weights_delta[layer] += np.dot(delta, outs[layer].T)
-                    bias_delta[layer] += delta
-                    delta = np.multiply(np.dot(self.weights[layer].T, delta),
-                                        self.sigmoid_prime(outs[layer]))
-                    layer -= 1
-            for k in range(layer_size - 1):
+                weights_delta, bias_delta = self.back_progation(
+                    weights_delta, bias_delta, out, target)
+            m = len(indexes)
+            for k in range(self.num_layers - 1):
                 self.weights[k] -= self.alpha * (1.0 / m) * weights_delta[k]
                 self.bias[k] -= self.alpha * (1.0 / m) * bias_delta[k]
             if errors / m < self.toler:
@@ -133,11 +135,12 @@ if __name__ == '__main__':
     test_set = pd.read_csv("../dataset/digit_recognizer/test.csv")
     test_set = test_set.apply(lambda x: x / 255.0)
     test_set = test_set.values
-    label_set = pd.get_dummies(data['label']).values
+    target_set = pd.get_dummies(data['label']).values
     train_set = data.iloc[:, 1:].values
     nn = neural_network(layers=[784, 64, 16, 10], alpha=0.1, toler=0.05,
-                        max_iter=10000, active_func='sigmoid')
-    nn.fit(train_set, label_set, method='MBGD', cost='cross_entropy')
+                        max_iter=10000, active_func='sigmoid',
+                        method='MBGD', cost='cross_entropy')
+    nn.fit(train_set, target_set)
     test_count = len(test_set)
     submission = []
     for i in range(test_count):

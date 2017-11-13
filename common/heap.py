@@ -23,8 +23,8 @@ class Heap(object):
       >>>>>>>right child>>>>>>  >>>>>left child>>>>>>>>
 
     type --the heap type,min_heap or max_heap
-    element_seq --the data sequence for heap initialized,if the capacity is not -1
-              use element_seq[:capacity],otherwise use whole element_seq
+    element_seq --the data sequence for heap initialized,if the capacity
+    is not -1 use element_seq[:capacity],otherwise use whole element_seq
     capacity -- the heap capacity, -1 means define by system
     '''
 
