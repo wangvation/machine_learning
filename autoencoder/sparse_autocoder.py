@@ -23,15 +23,9 @@ class sparse_autocoder(object):
         self.weights = []
         self.bias = []
 
-        r = 0.5
-
-        rand = np.random.RandomState(int(time.time()))
-
-        self.weights.append(
-            np.mat(rand.uniform(low=-r, high=r, size=(layers[1], layers[0]))))
+        self.weights.append(np.random.rand(layers[1], layers[0]) - 0.5)
         self.bias.append(np.zeros((self.hidden_layers, 1)))
-        self.weights.append(
-            np.mat(rand.uniform(low=-r, high=r, size=(layers[0], layers[1]))))
+        self.weights.append(np.random.rand(layers[2], layers[1]) - 0.5)
         self.bias.append(np.zeros((layers[2], 1)))
 
     def fit(self, train_set, method='BGD', is_debug=False):
@@ -58,10 +52,9 @@ class sparse_autocoder(object):
         _iter = 0
         converges = False
         while _iter < self.max_iter and not converges:
-            if is_debug:
-                indexes = self.get_batch('MBGD')
-                for index in indexes:
-                    self.gradient_check(index)
+            if is_debug and _iter == self.max_iter / 10:
+                indexes = self.get_batch('SGD')
+                self.gradient_check(indexes)
                 is_debug = False
             converges = self.gradient_descent(method)
             _iter += 1
@@ -80,44 +73,51 @@ class sparse_autocoder(object):
             if error <= 0.01:
                 continue
             weights_grad, bias_grad = self.back_propagation(
-                self.weights, self.bias, i)
-            weights_delta += weights_grad
-            bias_delta += bias_grad
-
+                self.weights, self.bias, i, rho_avg, actives)
+            for k in range(2):
+                weights_delta[k] += weights_grad[k]
+                bias_delta[k] += bias_grad[k]
         self.weights[0] -= self.alpha * \
             ((1.0 / m) * weights_delta[0] + self.lamda * self.weights[0])
         self.bias[0] -= self.alpha * (1.0 / m) * bias_delta[0]
         self.weights[1] -= self.alpha * \
             ((1.0 / m) * weights_delta[1] + self.lamda * self.weights[1])
         self.bias[1] -= self.alpha * (1.0 / m) * bias_delta[1]
+        # print(errors / m)
         if errors / m < self.toler:
             return True
         return False
 
-    def gradient_check(self, index):
+    def gradient_check(self, indexes):
         weights = copy.deepcopy(self.weights)
         bias = copy.deepcopy(self.bias)
-        weights_grad, bias_grad = self.back_propagation(weights, bias, index)
-        epsilon = 10e-4
-        for layer_index in range(2):
-            weight = weights[layer_index]
-            m, n = np.shape(weight)
-            for i in range(m):
-                for j in range(n):
-                    weight[i, j] += epsilon
-                    error1 = self.get_item_error(
-                        self.predict(self.data_mat[:, index],
-                                     weights, bias), self.data_mat[:, index])
-                    weight[i, j] -= 2 * epsilon
-                    error2 = self.get_item_error(
-                        self.predict(self.data_mat[:, index],
-                                     weights, bias), self.data_mat[:, index])
-                    print(weights_grad[layer_index][i, j],
-                          (error1 - error2) / (2 * epsilon))
+        outs, rho_avg = self.forward(indexes, self.weights, self.bias)
+        for k, actives in zip(indexes, outs):
+            weights_grad, bias_grad = self.back_propagation(
+                weights, bias, k, rho_avg, actives)
+            epsilon = 10e-4
+            for layer_index in range(2):
+                weight = weights[layer_index]
+                m, n = np.shape(weight)
+                for i in range(m):
+                    for j in range(n):
+                        weight[i, j] += epsilon
+                        error1 = self.get_item_error(
+                            self.predict(self.data_mat[:, k],
+                                         weights, bias), self.data_mat[:, k])
+                        weight[i, j] -= 2 * epsilon
+                        error2 = self.get_item_error(
+                            self.predict(self.data_mat[:, k],
+                                         weights, bias), self.data_mat[:, k])
+                        weight[i, j] += epsilon
+                        print(weights_grad[layer_index][i, j],
+                              (error1 - error2) / (2 * epsilon))
+                print('###############################################' +
+                      '################################################')
 
         pass
 
-    def back_propagation(self, weights, bias, index):
+    def back_propagation(self, weights, bias, index, rho_avg, out):
         '''
         p^平均活跃度,p稀疏性参数,通常是一个接近于0的较小的值(比如0.05)
         beta 控制稀疏性惩罚因子的权重
@@ -127,8 +127,6 @@ class sparse_autocoder(object):
         '''
         weights_grad = [None, None]
         bias_grad = [None, None]
-        outs, rho_avg = self.forward([index], weights, bias)
-        out = outs[0]
         target = self.data_mat[:, index]
         output_index = 2
         hidden_index = 1
@@ -140,7 +138,7 @@ class sparse_autocoder(object):
         punish = self.beta * \
             ((1 - self.rho) / (1 - rho_avg) - self.rho / rho_avg)
         delta_hidden = np.multiply(
-            np.dot(self.weights[input_index], delta_output) + punish,
+            np.dot(self.weights[hidden_index].T, delta_output) + punish,
             self.sigmoid_prime(out[hidden_index]))
         weights_grad[input_index] = np.dot(delta_hidden, out[input_index].T)
         bias_grad[input_index] = delta_hidden
@@ -153,7 +151,7 @@ class sparse_autocoder(object):
         elif method == 'SGD':  # Stochastic gradient descent
             indexes = [random.randint(0, data_size - 1)]
         elif method == 'MBGD':  # Mini-batch gradient descent
-            m = 30
+            m = 10
             indexes = [random.randint(0, data_size - 1) for x in range(m)]
         return indexes
 
@@ -162,8 +160,11 @@ class sparse_autocoder(object):
         return np.sum(np.multiply(minus, minus)) / 2.0
 
     def autocode(self, x):
-        Oi = np.dot(self.weights[0], np.mat(x).T) + self.bias[0]
-        return self.sigmoid(Oi)
+        Zh = np.dot(self.weights[0], np.mat(x).T) + self.bias[0]
+        Ah = self.sigmoid(Zh)
+        Zo = np.dot(self.weights[1], Ah) + self.bias[1]
+        return self.sigmoid(Zo)
+        # return Oi
 
     def predict(self, x, weights, bias):
         actives = []
@@ -199,7 +200,7 @@ def displayImage(images, rows, cols, patch_side):
 
     # ax[0].set_xticks([])
     # ax[0].set_yticks([])
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 
@@ -263,12 +264,12 @@ def load_dataset(num_patches, patch_side):
 
 if __name__ == '__main__':
     vis_patch_side = 8      # side length of sampled image patches
-    hid_patch_side = 8      # side length of representative image patches
+    hid_patch_side = 5      # side length of representative image patches
     rho = 0.01   # desired average activation of hidden units
     lamda = 0.0001  # weight decay parameter
-    beta = 3      # weight of sparsity penalty term
+    beta = 0.001      # weight of sparsity penalty term
     num_patches = 10000  # number of training examples
-    max_iterations = 400    # number of optimization iterations
+    max_iterations = 4000    # number of optimization iterations
     input_size = vis_patch_side * vis_patch_side  # number of input units
     hidden_size = hid_patch_side * hid_patch_side  # number of hidden units
 
@@ -280,12 +281,10 @@ if __name__ == '__main__':
                                  alpha=0.3, toler=0.1, max_iter=max_iterations,
                                  lamda=lamda, beta=beta, rho=rho)
     autocoder.fit(train_set=training_data, method='MBGD', is_debug=False)
-    # displayImage(training_data[:, :100], rows=10,
-    #              cols=10, patch_side=vis_patch_side)
-    result = np.zeros((hidden_size, 100))
+    displayImage(training_data[:, :100], rows=10,
+                 cols=10, patch_side=vis_patch_side)
+    result = np.zeros((input_size, 100))
     result = np.mat(result)
     for i in range(100):
-        # print(type(result[:, i]))
-        # print(type(autocoder.autocode(training_data[:, i])))
         result[:, i] = autocoder.autocode(training_data[:, i])
-    displayImage(result, rows=10, cols=10, patch_side=hid_patch_side)
+    displayImage(result, rows=10, cols=10, patch_side=vis_patch_side)
