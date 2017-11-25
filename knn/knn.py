@@ -7,6 +7,8 @@ from pycuda.compiler import SourceModule
 import pandas as pd
 sys.path.append("../common")
 import heap
+
+
 mod = SourceModule("""
     # include<math.h>
     # include <cuda_runtime.h>
@@ -109,7 +111,7 @@ class KNN(object):
 
 def normalize(_list):
     for i in range(1, len(_list)):
-        _list[i] = _list[i] > 127 and 1 or 0
+        _list[i] = _list[i] / 1.0
     return _list
 
 

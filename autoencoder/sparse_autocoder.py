@@ -38,11 +38,11 @@ class sparse_autocoder(object):
         for i in indexes:
             actives = []
             actives.append(self.data_mat[:, i])
-            act_L1 = np.dot(weights[0], actives[0]) + bias[0]
-            actives.append(self.sigmoid(act_L1))
+            Z_L1 = np.dot(weights[0], actives[0]) + bias[0]
+            actives.append(self.sigmoid(Z_L1))
             rho_avg += actives[1]
-            act_L2 = np.dot(weights[1], actives[1]) + bias[1]
-            actives.append(self.sigmoid(act_L2))
+            Z_L2 = np.dot(weights[1], actives[1]) + bias[1]
+            actives.append(self.sigmoid(Z_L2))
             outs.append(actives)
         m = len(indexes)
         rho_avg = rho_avg / m
@@ -137,6 +137,7 @@ class sparse_autocoder(object):
         bias_grad[hidden_index] = delta_output
         punish = self.beta * \
             ((1 - self.rho) / (1 - rho_avg) - self.rho / rho_avg)
+        # print(punish)
         delta_hidden = np.multiply(
             np.dot(self.weights[hidden_index].T, delta_output) + punish,
             self.sigmoid_prime(out[hidden_index]))
@@ -169,10 +170,10 @@ class sparse_autocoder(object):
     def predict(self, x, weights, bias):
         actives = []
         actives.append(x)
-        act_L1 = np.dot(weights[0], actives[0]) + bias[0]
-        actives.append(self.sigmoid(act_L1))
-        act_L2 = np.dot(weights[1], actives[1]) + bias[1]
-        actives.append(self.sigmoid(act_L2))
+        Z_L1 = np.dot(weights[0], actives[0]) + bias[0]
+        actives.append(self.sigmoid(Z_L1))
+        Z_L2 = np.dot(weights[1], actives[1]) + bias[1]
+        actives.append(self.sigmoid(Z_L2))
         return actives[-1]
 
     def sigmoid_prime(self, y):
@@ -263,11 +264,11 @@ def load_dataset(num_patches, patch_side):
 
 
 if __name__ == '__main__':
-    vis_patch_side = 8      # side length of sampled image patches
-    hid_patch_side = 5      # side length of representative image patches
-    rho = 0.01   # desired average activation of hidden units
+    vis_patch_side = 16      # side length of sampled image patches
+    hid_patch_side = 10      # side length of representative image patches
+    rho = 0.05   # desired average activation of hidden units
     lamda = 0.0001  # weight decay parameter
-    beta = 0.001      # weight of sparsity penalty term
+    beta = 3      # weight of sparsity penalty term
     num_patches = 10000  # number of training examples
     max_iterations = 4000    # number of optimization iterations
     input_size = vis_patch_side * vis_patch_side  # number of input units
