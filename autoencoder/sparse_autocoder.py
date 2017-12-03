@@ -112,8 +112,6 @@ class sparse_autocoder(object):
                         weight[i, j] += epsilon
                         print(weights_grad[layer_index][i, j],
                               (error1 - error2) / (2 * epsilon))
-                print('###############################################' +
-                      '################################################')
 
         pass
 

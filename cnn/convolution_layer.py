@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import numpy as np
-# from convolution_kernel import kernel
+from convolution_kernel import conv_kernel
+from cnn_utils import *
+EPSINON = 10e-6
 
 
 class convolution_layer(object):
@@ -10,107 +12,130 @@ class convolution_layer(object):
     def __init__(self, input_array, zero_padding=0, kernels=[]):
         self.kernels = kernels
         self.padding = zero_padding
-        self.input_array = self.around_with_zero(input_array)
+        self.input_array = input_array
         self.shape = self.input_array.shape
         self.feature_map = None
         pass
 
-    def conv(self):
-        feature_shape = self.calc_feature_shape(self.kernels)
+    def forward(self):
+        conv_map = self.convolution(
+            self.input_array, self.padding, *self.kernels)
+        self.feature_map = self.relu(conv_map)
+
+    def convolution(self, array, padding, *kernels):
+        array = around_with_zero(input_array=array,
+                                 width_padding=padding,
+                                 height_padding=padding)
+        feature_shape = conv_kernel.calc_feature_shape(
+            input_shape=array.shape, kernel_shape=kernels[0].shape,
+            kernel_num=len(kernels), padding=padding,
+            stride=kernels[0].stride)
         if feature_shape is None:
             return
-        out_width, out_height, out_depth = feature_shape
-        if out_depth is None:
-            self.feature_map = np.zeros((out_width, out_height),
-                                        dtype=np.float32)
+        conv_map = np.zeros(feature_shape, dtype=np.float32)
+        if conv_map.ndim == 3:
+            out_depth, out_height, out_width = feature_shape
         else:
-            self.feature_map = np.zeros(feature_shape, dtype=np.float32)
-        for i in range(out_width):
-            for j in range(out_height):
-                k = self.kernels[0]
-                patch = self.get_patch(i, j, self.input_array, k)
+            out_depth = None
+            out_height, out_width = feature_shape
+        for i in range(out_height):
+            for j in range(out_width):
+                k = kernels[0]
+                patch = get_patch(i, j, array, k)
                 if out_depth is None:
-                    net_ij = np.sum(patch * k.weights) + k.bias
-                    self.feature_map[i, j] = self.relu(net_ij)
+                    conv_map[i, j] = np.sum(patch * k.weights) + k.bias
                 else:
                     for d in range(out_depth):
-                        k = self.kernels[d]
-                        net_dij = np.sum(patch * k.weights) + k.bias
-                        self.feature_map[i, j, d] = self.relu(net_dij)
-        return self.feature_map
-
-    def around_with_zero(self, input_array):
-        if self.zero_padding == 0:
-            return input_array
-        if input_array.ndim == 2:
-            width, height = input_array.shape
-            ret = np.zeros((width + 2 * self.padding,
-                            height + 2 * self.padding), dtype=np.float32)
-            ret[self.padding:-self.padding,
-                self.padding:-self.padding] = input_array
-            return ret
-        else:
-            width, height, depth = input_array.shape
-            ret = np.zeros((width + 2 * self.padding,
-                            height + 2 * self.padding,
-                            depth), dtype=np.float32)
-            ret[self.padding:-self.padding, self.padding:-
-                self.padding, :] = input_array
-            return ret
-
-    def get_patch(self, i, j, p_kernel):
-        start_i = i * p_kernel.stride
-        start_j = j * p_kernel.stride
-
-        if self.input_array.ndim == 2:
-            return self.input_array[start_i:start_i + p_kernel.width,
-                                    start_j:start_j + p_kernel.height]
-        if self.input_array.ndim == 3:
-            return self.input_array[start_i:start_i + p_kernel.width,
-                                    start_j:start_j + p_kernel.height, :]
-
-    def calc_feature_shape(self):
-        '''
-        Return a shape of feature map
-        Returns
-        -------
-        withd:feature map withd
-        height:feature map height
-        depth:feature map depth, if feature map is 2D,depth is None
-        '''
-        kernel_num = len(self.kernels)
-        if kernel_num == 0:
-            raise ValueError('the length of the kernels must be more than zero')
-        for i in range(kernel_num - 1):
-            if self.kernels[i].shape() != self.kernels[i + 1].shape():
-                raise ValueError('the kernels must be equal in shape')
-        if len(self.shape) == 2:
-            input_width, input_height = self.shape
-            input_depth = None
-        elif len(self.shape) == 3:
-            input_width, input_height, input_depth = self.shape
-        else:
-            raise ValueError('the length of the input_shape must be 2 or 3')
-        out_width = (input_width - self.kernels[0].width + 2 *
-                     self.padding) / self.kernels[0].stride + 1
-        out_height = (input_height - self.kernels[0].height + 2 *
-                      self.padding) / self.kernels[0].stride + 1
-        if input_depth != self.kernels[0].depth or\
-                out_width <= 0 or out_height <= 0:
-            return None
-        if kernel_num == 1:
-            return out_width, out_height, None
-        return out_width, out_height, kernel_num
+                        k = kernels[d]
+                        conv_map[d, i, j] = np.sum(patch * k.weights) + k.bias
+        return conv_map
 
     def get_output(self):
         return self.feature_map
 
+    def extend_to_one_stride(self, kernel_shape, old_stride, sensitivity_map):
+        if sensitivity_map.ndim == 3:
+            old_depth, old_height, old_width = np.shape(sensitivity_map)
+        else:
+            old_height, old_width = np.shape(sensitivity_map)
+            old_depth = None
+        new_map_shape = conv_kernel.calc_feature_shape(
+            input_shape=self.shape, kernel_shape=kernel_shape,
+            kernel_num=old_depth, padding=self.padding, stride=1)
+        new_st_map = np.zeros(new_map_shape)
+        for i in range(old_height):
+            for j in range(old_width):
+                if old_depth is None:
+                    new_st_map[i * old_stride, j *
+                               old_stride] = sensitivity_map[i, j]
+                    continue
+                for d in range(old_depth):
+                    new_st_map[d, i * old_stride,
+                               j * old_stride] = sensitivity_map[d, i, j]
+        return new_st_map
+
+    def backward(self, sensitivity_map):
+        '''误差反向传递'''
+        new_kernels = [k.deepcopy() for k in self.kernels]
+        for new_kernel in new_kernels:
+            new_kernel.turn_round()
+        old_depth, old_height, old_width = expand_shape(
+            np.shape(sensitivity_map))
+        i_depth, i_height, i_width = expand_shape(self.shape)
+        k_depth, k_height, k_width = expand_shape(new_kernels[0].shape)
+        new_st_map = self.extend_to_one_stride(new_kernels[0].shape,
+                                               new_kernels[0].stride,
+                                               sensitivity_map)
+        new_width = (k_width + (i_width - 1) * 1 - 2 * self.padding)
+        new_height = (k_height + (i_height - 1) * 1 - 2 * self.padding)
+
+        width_padding = new_width - old_width
+        height_padding = new_height - old_height
+        new_st_map = around_with_zero(input_array=sensitivity_map,
+                                      width_padding=width_padding,
+                                      height_padding=height_padding)
+        conv_map = np.zeros(self.shape)
+        for i, new_kernel in enumerate(new_kernels, 0):
+            if k_depth is None:
+                conv_map[:, :] += self.convolution(
+                    new_st_map[i, :, :], 0, new_kernel)
+                continue
+            kernels_2d = new_kernel.expands_2d()
+            for d, kernel_2d in enumerate(kernels_2d, 0):
+                conv_map[d, :, :] += self.convolution(new_st_map[i, :, :],
+                                                      0, kernel_2d)
+        self.sensitivity_map = conv_map * self.relu_prime(self.input_array)
+
     def get_sensitivity_map(self):
         # 计算残差网络
-        pass
+        return self.sensitivity_map
+
+    def update(self, sensitivity_map, learning_rate):
+        if self.input_array.ndim == 3:
+            i_depth, i_height, i_width = np.shape(sensitivity_map)
+        else:
+            i_height, i_width = np.shape(sensitivity_map)
+            i_depth = None
+        new_map = self.extend_to_one_stride(kernel_shape=self.kernel[0].shape,
+                                            old_stride=self.kernels[0].stride,
+                                            sensitivity_map=sensitivity_map)
+        depth, height, width = self.expand_shape(new_map.shape)
+        for k, _kernel in enumerate(self.kernels):
+            _conv_kernel = conv_kernel(kernel_shape=(height, width),
+                                       weights=new_map[k, :, :],
+                                       bias=0.0, stride=1)
+            if i_depth is None:
+                _kernel.weights_grad += self.convolution(
+                    self.input_array, self.padding, _conv_kernel)
+                continue
+            for d in range(i_depth):
+                _kernel.weights_grad[d, :, :] += self.convolution(
+                    self.input_array[d, :, :], self.padding, _conv_kernel)
+            _kernel.bias_grad += np.sum(sensitivity_map[k, :, :])
+            _kernel.update(learning_rate)
 
     def relu(self, x):
-        return max(0, x)
+        return np.max(0, x)
 
     def relu_prime(self, y):
-        return 0 if y <= 0 else 1
+        return 1.0 if y > EPSINON else 0.0

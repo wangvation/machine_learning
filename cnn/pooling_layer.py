@@ -19,54 +19,36 @@ class pooling_layer(object):
         self.input_array = input_array
         self.pool_kernel = pool_kernel
         self.shape = input_array.shape
+        self.sensitivity_map = np.zeros(self.shape, dtype=np.float32)
         pass
 
-    def calc_feature_shape(self):
-        '''
-        Return a shape of feature map
-        Returns
-        -------
-        withd:feature map withd
-        height:feature map height
-        depth:feature map depth, if feature map is 2D,depth is None
-        '''
-        if len(self.shape) == 2:
-            input_width, input_height = self.shape
-            input_depth = None
-        elif len(self.shape) == 3:
-            input_width, input_height, input_depth = self.shape
-        else:
-            raise ValueError('the length of the input_shape must be 2 or 3')
-        out_width = (input_width - self.pool_kernel[0].width + 2 *
-                     self.padding) / self.pool_kernel[0].stride + 1
-        out_height = (input_height - self.pool_kernel[0].height + 2 *
-                      self.padding) / self.pool_kernel[0].stride + 1
-        if (input_depth != self.pool_kernel[0].depth or
-                out_width <= 0 or out_height <= 0):
-            return None
-        return out_width, out_height, input_depth
-
     def pooling(self):
+        """ """
         feature_shape = kernel.calc_feature_shape(
             input_shape=self.input_array.shape,
             zero_padding=0, kernels=[self.pool_kernel])
         if feature_shape is None:
             return
         feature_map = np.zeros(feature_shape, dtype=np.float32)
-        feature_width, feature_height, feature_depth = feature_shape
+        if feature_map.ndim == 3:
+            feature_depth, feature_height, feature_width = feature_shape
+        else:
+            feature_depth = None
+            feature_height, feature_width = feature_shape
+
         if self.pooling_type == 'max_pooling':
-            for i in range(feature_width):
-                for j in range(feature_height):
+            for i in range(feature_height):
+                for j in range(feature_width):
                     patch = self.get_patch(i, j)
                     if feature_depth is None:
                         feature_map[i, j] = np.max(patch)
                     else:
                         for d in range(feature_depth):
-                            feature_map[i, j, d] = np.max(patch[:, :, d])
+                            feature_map[d, i, j] = np.max(patch[d, :, :])
             pass
         if self.pooling_type == 'mean_pooling':
-            for i in range(feature_width):
-                for j in range(feature_height):
+            for i in range(feature_height):
+                for j in range(feature_width):
                     patch = self.get_patch(i, j)
                     if feature_depth is None:
                         feature_map[i, j] = np.mean(patch)
@@ -75,12 +57,50 @@ class pooling_layer(object):
                             feature_map[i, j, d] = np.mean(patch[:, :, d])
             pass
 
-    def get_patch(self, i, j):
+    def backward(self, sensitivity_map):
+        """
+
+        Args:
+          sensitivity_map:
+
+        Returns:
+
+        """
+        height, width = sensitivity_map.shape
+        if self.pooling_type == 'mean_pooling':
+            for i in range(height):
+                for j in range(width):
+                    patch = self.get_patch(self.sensitivity_map, i, j)
+                    patch[:] = (sensitivity_map[i, j] /
+                                (self.width * self.height))
+        if self.pooling_type == 'max_pooling':
+            for i in range(height):
+                for j in range(width):
+                    patch = self.get_patch(self.sensitivity_map, i, j)
+                    input_patch = self.get_patch(self.input_array, i, j)
+                    max_i, max_j = np.argmax(input_patch, axis=None, out=None)
+                    patch[max_i, max_j] = sensitivity_map[i, j]
+
+    def get_sensitivity_map(self):
+        """return a sensitivity map"""
+        return self.sensitivity_map
+
+    def get_patch(self, array, i, j):
+        """
+
+        Args:
+          array:
+          i:
+          j:
+
+        Returns:
+
+        """
         start_i = i * self.pool_kernel.stride
         start_j = j * self.pool_kernel.stride
-        kernel_width, kernel_height, kernel_depth = self.pool_kernel.shape()
+        kernel_depth, kernel_height, kernel_width = self.pool_kernel.shape()
         if kernel_depth is None:
-            return self.input_array[start_i:start_i + kernel_width,
-                                    start_j:start_j + kernel_height]
-        return self.input_array[start_i:start_i + kernel_width,
-                                start_j:start_j + kernel_height, :]
+            return array[start_i:start_i + kernel_height,
+                         start_j:start_j + kernel_width]
+        return array[:, start_i:start_i + kernel_height,
+                     start_j:start_j + kernel_width]

@@ -4,14 +4,15 @@ import numpy as np
 
 
 class fully_connect_layer(object):
-    """docstring for fully_connect_layer
+    """
+    fully connect layer
     active_func:active function
     active_derive:active derive
     cost_function:cost function
     layers:layer list
     input_array:input array
     target_array:target array
-    alpha:learning_rate
+    alpha:learning rate
     """
 
     def __init__(self, active_func, active_derive, cost_function,
@@ -54,9 +55,9 @@ class fully_connect_layer(object):
     def forward(self):
         outs = []
         outs.append(self.input_mat)
-        for j in range(1, self.num_layers):
-            Oj = np.dot(self.weights[j - 1],
-                        outs[j - 1]) + self.bias[j - 1]
+        for layer in range(1, self.num_layers):
+            Oj = np.dot(self.weights[layer - 1],
+                        outs[layer - 1]) + self.bias[layer - 1]
             outs.append(self.active_func(Oj))
         return outs
 
