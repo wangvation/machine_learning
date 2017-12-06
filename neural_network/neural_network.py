@@ -164,7 +164,8 @@ class neural_network(object):
         return np.argmax(out)
 
     def cross_entropy(self, out, y):
-        return np.sum(-np.multiply(y, np.log(out)))
+        return np.sum(-np.multiply(y, np.log(out)) -
+                      np.multiply(1 - y, np.log(1 - out)))
 
     def mean_square_error(self, out, y):
         minus = out - y
@@ -190,7 +191,7 @@ class neural_network(object):
 if __name__ == '__main__':
     data = pd.read_csv("../dataset/digit_recognizer/train.csv")
     data.iloc[:, 1:] = data.iloc[:, 1:].apply(lambda x: x / 255.0)
-    debug = False
+    debug = True
     if debug:
         data_size, columns_size = data.shape
         test_set = data.iloc[9 * data_size // 10:]
@@ -209,8 +210,8 @@ if __name__ == '__main__':
         test_set = test_set.apply(lambda x: x / 255.0)
         test_set = test_set.values
 
-    nn = neural_network(layers=[784, 100, 10], alpha=0.5, toler=0.01,
-                        max_iter=1000, lamda=0.001, active_func='sigmoid',
+    nn = neural_network(layers=[784, 100, 10], alpha=0.1, toler=0.01,
+                        max_iter=10000, lamda=0.001, active_func='sigmoid',
                         method='MBGD', cost='cross_entropy')
 
     if debug:

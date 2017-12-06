@@ -1,0 +1,9 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+<title>Proxy error: 400 Couldn't parse URL.</title>
+</head><body>
+<h1>400 Couldn't parse URL</h1>
+<p>The following error occurred while trying to access <strong>https://storage.googleapis.com/cvdf-datasets/mnist/train-images-idx3-ubyte.gz</strong>:<br><br>
+<strong>400 Couldn't parse URL</strong></p>
+<hr>Generated Wed, 06 Dec 2017 21:23:49 CST by Polipo on <em>zfj-linux:8123</em>.
+</body></html>

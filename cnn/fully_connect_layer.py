@@ -6,7 +6,7 @@ import numpy as np
 class fully_connect_layer(object):
     """
     fully connect layer
-    active_func:active function
+    active:active function
     active_derive:active derive
     cost_function:cost function
     layers:layer list
@@ -15,12 +15,12 @@ class fully_connect_layer(object):
     alpha:learning rate
     """
 
-    def __init__(self, active_func, active_derive, cost_function,
+    def __init__(self, active, active_derive, cost_function,
                  layers, input_array, target_array, alpha=0.3):
         '''
         Parameters
         ----------
-        active_func:active function
+        active:active function
         active_derive:active derive
         cost_function:cost function
         layers:layer list
@@ -31,7 +31,7 @@ class fully_connect_layer(object):
         '''
         self.layers = layers
         self.alpha = alpha
-        self.active_func = active_func
+        self.active = active
         self.active_derive = active_derive
         self.cost_function = cost_function
         self.num_layers = len(layers)
@@ -58,7 +58,7 @@ class fully_connect_layer(object):
         for layer in range(1, self.num_layers):
             Oj = np.dot(self.weights[layer - 1],
                         outs[layer - 1]) + self.bias[layer - 1]
-            outs.append(self.active_func(Oj))
+            outs.append(self.active(Oj))
         return outs
 
     def back_progation(self, weights_delta, bias_delta, out):

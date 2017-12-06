@@ -3,13 +3,15 @@
 import numpy as np
 from convolution_kernel import conv_kernel
 from cnn_utils import *
-EPSINON = 10e-6
 
 
 class convolution_layer(object):
     '''docstring for convolution_layer'''
 
-    def __init__(self, input_array, zero_padding=0, kernels=[]):
+    def __init__(self, active, active_derive, input_array,
+                 zero_padding=0, kernels=[]):
+        self.active = active
+        self.active_derive = active_derive
         self.kernels = kernels
         self.padding = zero_padding
         self.input_array = input_array
@@ -20,7 +22,7 @@ class convolution_layer(object):
     def forward(self):
         conv_map = self.convolution(
             self.input_array, self.padding, *self.kernels)
-        self.feature_map = self.relu(conv_map)
+        self.feature_map = self.active(conv_map)
 
     def convolution(self, array, padding, *kernels):
         array = around_with_zero(input_array=array,
@@ -104,7 +106,7 @@ class convolution_layer(object):
             for d, kernel_2d in enumerate(kernels_2d, 0):
                 conv_map[d, :, :] += self.convolution(new_st_map[i, :, :],
                                                       0, kernel_2d)
-        self.sensitivity_map = conv_map * self.relu_prime(self.input_array)
+        self.sensitivity_map = conv_map * self.active_derive(self.input_array)
 
     def get_sensitivity_map(self):
         # 计算残差网络
@@ -133,9 +135,3 @@ class convolution_layer(object):
                     self.input_array[d, :, :], self.padding, _conv_kernel)
             _kernel.bias_grad += np.sum(sensitivity_map[k, :, :])
             _kernel.update(learning_rate)
-
-    def relu(self, x):
-        return np.max(0, x)
-
-    def relu_prime(self, y):
-        return 1.0 if y > EPSINON else 0.0
