@@ -32,9 +32,10 @@ class neural_network(object):
         for i in range(1, self.num_layers):
             n = self.layers[i - 1]
             m = self.layers[i]
-            self.weights.append(np.random.normal(loc=0.0, scale=0.01,
+            self.weights.append(np.random.normal(loc=0.0,
+                                                 scale=1.0 / np.sqrt(m * n),
                                                  size=(m, n)))
-            self.bias.append(np.zeros((m, 1), dtype=np.float32))
+            self.bias.append(np.zeros((m, 1)))
 
     def fit(self, data_set, target_set, debug=False):
         self.data_mat = np.mat(data_set)

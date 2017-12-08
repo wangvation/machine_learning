@@ -1,15 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import sys
-sys.path.append("../common")
 import math
-import matplotlib as plt
+# import matplotlib as plt
 import treePlotter as tp
 import pandas as pd
 
 
 class decision_tree(object):
-    def __init__(self, data_set=[], id_index=-1, label_index=-1, algorithm='id3'):
+    def __init__(self, data_set=[], id_index=-1,
+                 label_index=-1, algorithm='id3'):
         self.__label_index = label_index
         self.__attrs = data_set[0]
         if id_index != -1:
@@ -98,7 +97,7 @@ class decision_tree(object):
             sub_tree[key] = self.build_tree_by_c45(sub_set, sub_attrs)
         return {attr_index: sub_tree}
 
-    def build_tree_by_c50(self):
+    def build_tree_by_c50(self, data_set, attrs):
         label_dict = self.count_attr(data_set, self.__label_index)
         if len(label_dict) == 1:
             return label_dict.keys()
@@ -112,17 +111,16 @@ class decision_tree(object):
                     max_label = label
             return max_label
         sub_tree = {}
-        if attr_index == -1:
-            attr_index = self.best_split_attr(data_set)
-        self.__attrs[attr_index] = None
+        attr_index = self.best_split_attr(data_set, attrs)
+        sub_attrs = attrs[:]
+        sub_attrs[attr_index] = None
         attr_dict = self.count_attr(data_set, attr_index)
         for key, value in attr_dict.items():
             sub_set = self.sub_set_for_attr(data_set, attr_index, key)
-            best_attr_index = self.best_split_attr(sub_set)
-            sub_tree[key] = self.build_tree_by_c50(sub_set, best_attr_index)
+            sub_tree[key] = self.build_tree_by_c50(sub_set, sub_attrs)
         return {attr_index: sub_tree}
 
-    def build_tree_by_cart(self):
+    def build_tree_by_cart(self, data_set, attrs):
         label_dict = self.count_attr(data_set, self.__label_index)
         if len(label_dict) == 1:
             return label_dict.keys()[0]
@@ -136,14 +134,13 @@ class decision_tree(object):
                     max_label = label
             return max_label
         sub_tree = {}
-        if attr_index == -1:
-            attr_index = self.best_split_attr(data_set)
-        self.__attrs[attr_index] = None
+        attr_index = self.best_split_attr(data_set, attrs)
+        sub_attrs = attrs[:]
+        sub_attrs[attr_index] = None
         attr_dict = self.count_attr(data_set, attr_index)
         for key, value in attr_dict.items():
             sub_set = self.sub_set_for_attr(data_set, attr_index, key)
-            best_attr_index = self.best_split_attr(sub_set)
-            sub_tree[key] = self.build_tree_by_cart(sub_set, best_attr_index)
+            sub_tree[key] = self.build_tree_by_cart(sub_set, sub_attrs)
         return {attr_index: sub_tree}
 
     def info_gain(self, data_set, attr_index):
@@ -284,11 +281,11 @@ class decision_tree(object):
                 label_dict[leave] = 1
         loss = 0
         for label, num in label_dict.items():
-            p = num / leaves_num
+            p = num / leave_num
             loss -= num * math.log(p, 2)
         return loss + alpha * self.node_count(self.__root)
 
-    def node_count(tree):
+    def node_count(self, tree):
         attr_index, node = tree.items()[0]
         if not isinstance(node, dict):
             return 1
@@ -303,25 +300,11 @@ class decision_tree(object):
         if not isinstance(node, dict):
             return 1, [node]
         leaves_count = 0
-        leaves_list = []
         for key, sub_tree in node.items():
-            leaves_num, leaves = get_leaves(sub_tree)
+            leaves_num, leaves = self.get_leaves(sub_tree)
             leaves_count += leaves_num
             leaves += leaves
         return leaves_count, leaves
-
-
-def load_data(file):
-    data = []
-    isSuccess = False
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-        for line in lines:
-            data.append(line.split(','))
-        isSuccess = True
-    if not isSuccess:
-        raise IOError("file load failed!")
-    return data
 
 
 if __name__ == '__main__':
@@ -332,7 +315,9 @@ if __name__ == '__main__':
     decision_tree = decision_tree(
         train_set, id_index=0, label_index=1, algorithm='c45')
     decision_tree.fit()
-    # tp.createPlot(decision_tree.tree())
+    debug = False
+    if debug:
+        tp.createPlot(decision_tree.tree())
     submission = []
     submission.append(['PassengerId', 'Survived'])
     right_count = 0
@@ -342,5 +327,7 @@ if __name__ == '__main__':
         submission.append([test_set[i][0], label])
         if label == gender_submission[i + 1][1]:
             right_count += 1
-    save_csv('submission.csv', submission)
+    submission_df = pd.DataFrame(data=submission,
+                                 columns=['PassengerId', 'Survived'])
+    submission_df.to_csv('submission.csv', index=False)
     print(str(right_count) + "/" + str(count))
