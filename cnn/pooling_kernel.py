@@ -30,6 +30,7 @@ class pooling_kernel(object):
             raise ValueError('The kernel_num must be greater than 1.')
         return [pooling_kernel(kernel_shape, stride) for _ in range(kernel_num)]
 
+    @classmethod
     def calc_feature_shape(cls, input_shape, kernel_shape, padding=0, stride=1):
         """
 
@@ -54,9 +55,9 @@ class pooling_kernel(object):
         else:
             raise ValueError('the length of the input_shape must be 2 or 3')
         out_width = (input_width - kernel_width + 2 *
-                     padding) / stride + 1
+                     padding) // stride + 1
         out_height = (input_height - kernel_height + 2 *
-                      padding) / stride + 1
+                      padding) // stride + 1
         if (input_depth != kernel_depth):
             raise ValueError('The depth of the input_shape must be equal to '
                              'the depth of the convolution_shape')

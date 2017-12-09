@@ -30,30 +30,31 @@ def around_with_zero(input_array, width_padding, height_padding):
         return new_array
 
 
-def get_patch(i, j, array, p_kernel):
+def get_patch(i, j, array, kernel_shape, stride):
     """
 
     Args:
       i: row index
       j: col index
       array:
-      p_kernel:
+      kernel_shape:
 
     Returns:
 
     """
-    start_i = i * p_kernel.stride
-    start_j = j * p_kernel.stride
+    depth, width, height = expand_shape(kernel_shape)
+    start_i = i * stride
+    start_j = j * stride
 
     if array.ndim == 2:
-        return array[start_i:start_i + p_kernel.height,
-                     start_j:start_j + p_kernel.width]
+        return array[start_i:start_i + height,
+                     start_j:start_j + width]
     if array.ndim == 3:
-        return array[:, start_i:start_i + p_kernel.height,
-                     start_j:start_j + p_kernel.width]
+        return array[:, start_i:start_i + height,
+                     start_j:start_j + width]
 
 
-def expand_shape(shape):
+def expand_shape(shape, default_depth=None):
     """
     expand the shape
     Args:
@@ -66,6 +67,6 @@ def expand_shape(shape):
     if len(shape) == 3:
         depth, height, width = shape
     else:
-        depth = None
+        depth = default_depth
         height, width = shape
     return depth, height, width

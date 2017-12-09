@@ -56,7 +56,8 @@ class neural_network(object):
                 debug = False
             errors = self.cost(batch_size, predict, targets)
             if _iter % 100 == 0:
-                print(errors)
+                self.alpha *= 0.98
+                print(errors, self.alpha)
             if errors < self.toler:
                 break
             self.gradient_descent(outs, targets, batch_size)
@@ -69,7 +70,7 @@ class neural_network(object):
         elif self.method == 'SGD':  # Stochastic gradient descent
             indexes = [random.randint(0, data_size - 1)]
         elif self.method == 'MBGD':  # Mini-batch gradient descent
-            m = 10
+            m = 20
             indexes = [random.randint(0, data_size - 1) for x in range(m)]
         return indexes
 
@@ -195,14 +196,19 @@ if __name__ == '__main__':
     debug = True
     if debug:
         data_size, columns_size = data.shape
-        test_set = data.iloc[9 * data_size // 10:]
-        train_set = data[:9 * data_size // 10]
+        train_set = data.iloc[:, 1:].values
+        label_set = pd.get_dummies(data['label']).values
+        all_mask = np.repeat(True, data_size)
+        test_index = np.random.randint(0, data_size, size=data_size // 10,
+                                       dtype=np.int32)
 
-        test_label = pd.get_dummies(test_set['label']).values
-        test_set = test_set.iloc[:, 1:].values
+        test_label = label_set[test_index, :]
+        test_set = train_set[test_index, :]
 
-        target_set = pd.get_dummies(train_set['label']).values
-        train_set = train_set.iloc[:, 1:].values
+        all_mask[test_index] = False
+        train_set = train_set[all_mask, :]
+        target_set = label_set[all_mask, :]
+
     else:
         target_set = pd.get_dummies(data['label']).values
         train_set = data.iloc[:, 1:].values
@@ -211,7 +217,7 @@ if __name__ == '__main__':
         test_set = test_set.apply(lambda x: x / 255.0)
         test_set = test_set.values
 
-    nn = neural_network(layers=[784, 100, 10], alpha=0.1, toler=0.01,
+    nn = neural_network(layers=[784, 100, 10], alpha=1.0, toler=0.01,
                         max_iter=10000, lamda=0.001, active_func='sigmoid',
                         method='MBGD', cost='cross_entropy')
 

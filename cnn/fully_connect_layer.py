@@ -6,25 +6,25 @@ import numpy as np
 class fully_connect_layer(object):
     """
     fully connect layer
-    active:active function
-    active_derive:active derive
+    action:action function
+    action_derive:action derive
     layers:layer list
     input_array:input array
     alpha:learning rate
     """
 
-    def __init__(self, active, active_derive, layers):
+    def __init__(self, action, action_derive, layers):
         '''
         Parameters
         ----------
-        active:active function
-        active_derive:active derive
+        action:action function
+        action_derive:action derive
         layers:layer list
         input_array:input array
 
         '''
-        self.active = active
-        self.active_derive = active_derive
+        self.action = action
+        self.action_derive = action_derive
         std = 1.0 / np.sqrt(layers[1] * layers[0])
         weights = np.random.normal(loc=0.0,
                                    scale=std,
@@ -38,8 +38,8 @@ class fully_connect_layer(object):
         '''
         Parameters
         ----------
-        active:active function
-        active_derive:active derive
+        action:action function
+        action_derive:action derive
         layers:layer list
         input_array:input array
         alpha:learning rate
@@ -47,12 +47,12 @@ class fully_connect_layer(object):
         '''
         self.input_mat = np.mat(input_array)
         weighted_sum = self.weights * self.input_mat + self.bias
-        self.out_put = self.active(weighted_sum)
+        self.out_put = self.action(weighted_sum)
         return self.out_put
 
     def backward(self, delta_mat):
         self.delta_mat = np.multiply(self.weights.T * delta_mat,
-                                     self.active_derive(self.out_put))
+                                     self.action_derive(self.out_put))
         self.clac_gradient(delta_mat)
         return self.delta_mat
 

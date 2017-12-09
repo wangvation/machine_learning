@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from pooling_kernel import pooling_kernel
+from cnn_tools import *
 
 
 class pooling_layer(object):
@@ -49,12 +50,16 @@ class pooling_layer(object):
         if feature_depth is None:
             for i in range(feature_height):
                 for j in range(feature_width):
-                    patch = self.get_patch(i, j)
+                    patch = self.get_patch(i, j, self.input_array,
+                                           self.pool_kernel.shape,
+                                           self.pool_kernel.stride)
                     feature_map[i, j] = np.max(patch)
         else:
             for i in range(feature_height):
                 for j in range(feature_width):
-                    patch = self.get_patch(i, j)
+                    patch = get_patch(i, j, self.input_array,
+                                      self.pool_kernel.shape,
+                                      self.pool_kernel.stride)
                     for d in range(feature_depth):
                         feature_map[d, i, j] = np.max(patch[d, :, :])
         return feature_map
@@ -71,12 +76,16 @@ class pooling_layer(object):
         if feature_depth is None:
             for i in range(feature_height):
                 for j in range(feature_width):
-                    patch = self.get_patch(i, j)
+                    patch = self.get_patch(i, j, self.input_array,
+                                           self.pool_kernel.shape,
+                                           self.pool_kernel.stride)
                     feature_map[i, j] = np.mean(patch)
         else:
             for i in range(feature_height):
                 for j in range(feature_width):
-                    patch = self.get_patch(i, j)
+                    patch = self.get_patch(i, j, self.input_array,
+                                           self.pool_kernel.shape,
+                                           self.pool_kernel.stride)
                     for d in range(feature_depth):
                         feature_map[d, i, j] = np.mean(patch[d, :, :])
         return feature_map
@@ -101,27 +110,7 @@ class pooling_layer(object):
             for i in range(height):
                 for j in range(width):
                     patch = self.get_patch(self.delta_map, i, j)
-                    input_patch = self.get_patch(self.input_array, i, j)
+                    input_patch = get_patch(self.input_array, i, j)
                     max_i, max_j = np.argmax(input_patch, axis=None, out=None)
                     patch[max_i, max_j] = delta_map[i, j]
         return self.delta_map
-
-    def get_patch(self, array, i, j):
-        """
-
-        Args:
-          array:
-          i:
-          j:
-
-        Returns:
-
-        """
-        start_i = i * self.pool_kernel.stride
-        start_j = j * self.pool_kernel.stride
-        kernel_depth, kernel_height, kernel_width = self.pool_kernel.shape()
-        if kernel_depth is None:
-            return array[start_i:start_i + kernel_height,
-                         start_j:start_j + kernel_width]
-        return array[:, start_i:start_i + kernel_height,
-                     start_j:start_j + kernel_width]

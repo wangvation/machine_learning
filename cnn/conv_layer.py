@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from conv_kernel import conv_kernel
-from cnn_utils import *
+from cnn_tools import *
 
 
 class conv_layer(object):
@@ -44,8 +44,8 @@ class conv_layer(object):
     def forward(self, input_array):
         self.input_array = input_array
         array = around_with_zero(input_array=self.input_array,
-                                 width_padding=padding,
-                                 height_padding=padding)
+                                 width_padding=self.padding,
+                                 height_padding=self.padding)
         conv_map = self.convolution(array, *self.kernels)
         self.feature_map = self.action(conv_map)
         return self.feature_map
@@ -53,30 +53,26 @@ class conv_layer(object):
     def convolution(self, array, *kernels):
         if self.feature_shape is None:
             return
-        conv_map = np.zeros(self.feature_shape, dtype=np.float32)
-        if conv_map.ndim == 3:
-            out_depth, out_height, out_width = self.feature_shape
-        else:
-            out_depth = None
-            out_height, out_width = self.feature_shape
-        for i in range(out_height):
-            for j in range(out_width):
-                k = kernels[0]
-                patch = get_patch(i, j, array, k)
-                if out_depth is None:
+        conv_map = np.zeros(self.feature_shape)
+        out_depth, out_height, out_width = expand_shape(self.feature_shape)
+        if out_depth is None:
+            for i in range(out_height):
+                for j in range(out_width):
+                    k = kernels[0]
+                    patch = get_patch(i, j, array, k)
                     conv_map[i, j] = np.sum(patch * k.weights) + k.bias
-                else:
+        else:
+            for i in range(out_height):
+                for j in range(out_width):
+                    k = kernels[0]
+                    patch = get_patch(i, j, array, k.shape, k.stride)
                     for d in range(out_depth):
                         k = kernels[d]
                         conv_map[d, i, j] = np.sum(patch * k.weights) + k.bias
         return conv_map
 
     def extend_to_one_stride(self, kernel_shape, old_stride, delta_map):
-        if delta_map.ndim == 3:
-            old_depth, old_height, old_width = np.shape(delta_map)
-        else:
-            old_height, old_width = np.shape(delta_map)
-            old_depth = None
+        old_depth, old_height, old_width = expand_shape(np.shape(delta_map))
         new_map_shape = conv_kernel.calc_feature_shape(
             input_shape=self.shape, kernel_shape=kernel_shape,
             kernel_num=old_depth, padding=self.padding, stride=1)
@@ -99,8 +95,7 @@ class conv_layer(object):
         new_kernels = [k.deepcopy() for k in self.kernels]
         for new_kernel in new_kernels:
             new_kernel.turn_round()
-        old_depth, old_height, old_width = expand_shape(
-            np.shape(delta_map))
+        old_depth, old_height, old_width = expand_shape(np.shape(delta_map))
         i_depth, i_height, i_width = expand_shape(self.shape)
         k_depth, k_height, k_width = expand_shape(self.kernel_shape)
         new_st_map = self.extend_to_one_stride(self.kernel_shape,
@@ -130,11 +125,7 @@ class conv_layer(object):
         return self.delta_map
 
     def calc_gradient(self, delta_map):
-        if self.input_array.ndim == 3:
-            i_depth, i_height, i_width = np.shape(delta_map)
-        else:
-            i_height, i_width = np.shape(delta_map)
-            i_depth = None
+        i_depth, i_height, i_width = expand_shape(np.shape(delta_map))
         new_map = self.extend_to_one_stride(kernel_shape=self.kernel_shape,
                                             old_stride=self.kernel_stride,
                                             delta_map=delta_map)

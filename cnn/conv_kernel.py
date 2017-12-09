@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from pooling_kernel import pooling_kernel
+from cnn_tools import *
 
 
 class conv_kernel(pooling_kernel):
@@ -10,11 +11,7 @@ class conv_kernel(pooling_kernel):
     def __init__(self, kernel_shape, weights=None, bias=0.0, stride=1):
         super(conv_kernel, self).__init__(kernel_shape, stride)
         if weights is None:
-            if len(kernel_shape) == 3:
-                depth, height, width = kernel_shape
-            else:
-                depth = 1
-                height, width = kernel_shape
+            depth, height, width = expand_shape(kernel_shape, 1)
             std = 1.0 / np.sqrt(depth * height * width)
             self.weights = np.random.normal(loc=0.0,
                                             scale=std,
@@ -80,6 +77,7 @@ class conv_kernel(pooling_kernel):
         return [conv_kernel(kernel_shape, weights, bias, stride)
                 for k in range(kernel_num)]
 
+    @classmethod
     def calc_feature_shape(cls, input_shape, kernel_shape, kernel_num,
                            padding=0, stride=1):
         """
@@ -96,18 +94,12 @@ class conv_kernel(pooling_kernel):
         """
         if kernel_num == 0:
             raise ValueError('The length of the kernels must be more than zero')
-        if len(input_shape) == 2:
-            input_height, input_width = input_shape
-            input_depth = None
-        elif len(input_shape) == 3:
-            input_depth, input_height, input_width = input_shape
-        else:
-            raise ValueError('The ndim of the input_shape must be 2 or 3')
-        kernel_depth, kernel_height, kernel_width = kernel_shape
+        input_depth, input_height, input_width = expand_shape(input_shape)
+        kernel_depth, kernel_height, kernel_width = expand_shape(kernel_shape)
         out_width = (input_width - kernel_width + 2 *
-                     padding) / stride + 1
+                     padding) // stride + 1
         out_height = (input_height - kernel_height + 2 *
-                      padding) / stride + 1
+                      padding) // stride + 1
         if input_depth != kernel_depth:
             raise ValueError('The depth of the input_shape must be equal to '
                              'the depth of the convolution_shape')

@@ -21,11 +21,5 @@ class softmax_layer(object):
         return x / _sum
 
     def backward(self, targets):
-        j = np.argmax(targets)
-        for i in range(self.layers):
-            self.delta_mat[i] = self.out_put[i] - \
-                1 if i == j else self.out_put[i]
+        self.delta_mat = self.out_put - targets
         return self.delta_mat
-
-    def cross_entropy(self, y, targets):
-        return -np.sum(np.multiply(targets, np.log(y)))
