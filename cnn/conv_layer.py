@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from conv_kernel import conv_kernel
-from cnn_tools import *
+from cnn_utils import *
 
 
 class conv_layer(object):

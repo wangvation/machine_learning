@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from pooling_kernel import pooling_kernel
-from cnn_tools import *
+from cnn_utils import *
 
 
 class pooling_layer(object):
