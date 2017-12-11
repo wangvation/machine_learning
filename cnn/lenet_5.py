@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 from conv_layer import conv_layer
-from fully_connect_layer import fully_connect_layer
+from fully_connect_layer import fc_layer
 from softmax_layer import softmax_layer
 from pooling_layer import pooling_layer
 import struct
@@ -15,29 +15,29 @@ class lenet_5(object):
     def __init__(self):
         self.layers = []
         self.layers.append(conv_layer(action=self.relu, zero_padding=2,
-                                      action_derive=self.relu_prime,
+                                      action_derive=self.relu_derive,
                                       input_shape=(28, 28), kernel_stride=1,
                                       kernel_shape=(5, 5), kernel_num=6))
         self.layers.append(pooling_layer(input_shape=(6, 28, 28),
                                          kernel_shape=(6, 2, 2),
                                          pooling_type='max_pooling', stride=2))
         self.layers.append(conv_layer(action=self.relu, zero_padding=0,
-                                      action_derive=self.relu_prime,
+                                      action_derive=self.relu_derive,
                                       input_shape=(6, 14, 14), kernel_stride=1,
                                       kernel_shape=(6, 5, 5), kernel_num=16))
         self.layers.append(pooling_layer(input_shape=(16, 10, 10),
                                          kernel_shape=(16, 2, 2),
                                          pooling_type='max_pooling', stride=2))
         self.layers.append(conv_layer(action=self.relu, zero_padding=0,
-                                      action_derive=self.relu_prime,
+                                      action_derive=self.relu_derive,
                                       input_shape=(16, 5, 5), kernel_stride=1,
                                       kernel_shape=(16, 5, 5), kernel_num=120))
-        self.layers.append(fully_connect_layer(action=self.relu,
-                                               action_derive=self.relu_prime,
-                                               layers=(120, 84)))
-        self.layers.append(fully_connect_layer(action=self.relu,
-                                               action_derive=self.relu_prime,
-                                               layers=(84, 10)))
+        self.layers.append(fc_layer(action=self.relu,
+                                    action_derive=self.relu_derive,
+                                    layers=(120, 84)))
+        self.layers.append(fc_layer(action=self.relu,
+                                    action_derive=self.relu_derive,
+                                    layers=(84, 10)))
         self.layers.append(softmax_layer(10))
 
     def train(self, train_set, targets, alpha, method='SGD'):
@@ -45,25 +45,39 @@ class lenet_5(object):
         _iter = 0
         while _iter < 1000:
             batch_size, batch_index = self.get_batch(method, data_size)
+            errors = 0
             for i in batch_index:
-                input_array = train_set[i, :, :]
+                out_put = train_set[i, ...]
+                target = targets[i]
                 for layer in self.layers:
-                    input_array = layer.forward(input_array)
-                if _iter % 100 == 0:
-                    print(self.cross_entropy(input_array, targets[i]))
-                delta_map = self.layers[-1].backward(targets[i])
+                    out_put = layer.forward(out_put)
+                error = self.mean_square_error(out_put, target)
+                if error < 0.01:
+                    print('error', error)
+                    continue
+                errors += error
+                delta_map = self.layers[-1].backward(target)
                 for layer in self.layers[-2::-1]:
                     delta_map = layer.backward(delta_map)
+            print('errors', errors / batch_size)
             for layer in self.layers:
                 layer.update(alpha, batch_size)
             _iter += 1
+            # break
         pass
 
-    def classfier(self, x):
-        return np.argmax(x)
+    def classifier(self, x):
+        out = x
+        for layer in self.layers:
+            out = layer.forward(out)
+        return np.argmax(out)
 
-    def cross_entropy(self, y, targets):
-        return -np.sum(np.multiply(targets, np.log(y)))
+    def cross_entropy(self, y, target):
+        return -np.sum(target * np.log(np.array(y)))
+
+    def mean_square_error(self, y, target):
+        minus = y - target
+        return np.sum(np.multiply(minus, minus)) / 2.0
 
     def get_batch(self, method, data_size):
         if method == 'BGD':  # Batch gradient descent
@@ -73,17 +87,33 @@ class lenet_5(object):
             indexes = [np.random.randint(low=0, high=data_size, size=1)]
             return 1, indexes
         if method == 'MBGD':  # Mini-batch gradient descent
-            m = 30
+            m = 10
             indexes = np.random.randint(low=0, high=data_size, size=m)
             return m, indexes
 
     def relu(self, array):
-        negative_mask = array < 0
-        array[negative_mask] = 0
+        array[array < 0] = 0.0
+        while np.sum(array > 10) > 0:
+            array = array / 10
         return array
 
-    def relu_prime(self, y):
-        return 1.0 if y > 0.0 else 0.0
+    def relu_derive(self, y):
+        derive = np.zeros(y.shape)
+        derive[np.nonzero(y > 0.0)] = 1.0
+        return derive
+
+    def softplus(self, x):
+        return np.log(1 + np.exp(x))
+
+    def softplus_derive(self, y):
+        exp_y = np.exp(y)
+        return exp_y / (exp_y + 1)
+
+    def sigmoid(self, x):
+        return 1.0 / (1.0 + np.exp(-x))
+
+    def sigmoid_derive(self, y):
+        return np.multiply(y, (1 - y))
 
 
 def load_mnist(images_path, labels_path):
@@ -108,10 +138,8 @@ def normalize(array):
 
 
 def one_hot(data):
-    arr = np.zeros((len(data), 10), dtype=np.float32)
-    arr[np.arange(len(data)), data] = 1
-    # for i, one_hot in enumerate(data, 0):
-    #     arr[i, one_hot] = 1.0
+    arr = np.zeros((len(data), 10, 1), dtype=np.float32)
+    arr[np.arange(len(data)), data] = 1.0
     return arr
 
 
@@ -127,11 +155,11 @@ def do_mnist():
     test_set = normalize(test_set)
     test_labels = one_hot(test_labels)
     lenet = lenet_5()
-    lenet.train(train_set, train_labels, alpha=0.3, method='MBGD')
+    lenet.train(train_set, train_labels, alpha=1.0, method='MBGD')
     test_count = len(test_set)
     right_count = 0
-    for i in range(test_count):
-        label = lenet.classifier(test_set[i])
+    for i in range(100):
+        label = lenet.classifier(test_set[i, ...])
         if 1 == test_labels[i, label]:
             right_count += 1
     print(right_count / test_count)
@@ -143,7 +171,7 @@ def do_kaggle():
     target_set = pd.get_dummies(data['label']).values
     data_size, columns_size = data.shape
     train_set = data.iloc[:, 1:].values
-    train_set = train_set.reshape(42000, 28, 28)
+    train_set = train_set.reshape(data_size, 28, 28)
 
     test_set = pd.read_csv("../dataset/digit_recognizer/test.csv")
     test_set = test_set.apply(lambda x: x / 255.0)

@@ -14,7 +14,8 @@ def around_with_zero(input_array, width_padding, height_padding):
     Returns:
 
     """
-    print("sss", input_array.shape, width_padding, height_padding)
+    if height_padding == 0 and width_padding == 0:
+        return input_array
     if input_array.ndim == 2:
         height, width = input_array.shape
         new_array = np.zeros((height + 2 * height_padding,
@@ -28,32 +29,30 @@ def around_with_zero(input_array, width_padding, height_padding):
                               width + 2 * width_padding), dtype=np.float32)
         new_array[:, height_padding:-height_padding,
                   width_padding:-width_padding] = input_array
-        print(width_padding, height_padding)
         return new_array
 
 
-def get_patch(i, j, array, kernel_shape, stride):
+def get_patch(i, j, array, p_kernel):
     """
 
     Args:
       i: row index
       j: col index
       array:
-      kernel_shape:
+      p_kernel:
 
     Returns:
 
     """
-    depth, width, height = expand_shape(kernel_shape)
-    start_i = i * stride
-    start_j = j * stride
+    depth, width, height = expand_shape(p_kernel.shape)
+    start_i = i * p_kernel.stride
+    start_j = j * p_kernel.stride
 
-    if array.ndim == 2:
+    if depth is None:
         return array[start_i:start_i + height,
                      start_j:start_j + width]
-    if array.ndim == 3:
-        return array[:, start_i:start_i + height,
-                     start_j:start_j + width]
+    return array[:, start_i:start_i + height,
+                 start_j:start_j + width]
 
 
 def expand_shape(shape, default_depth=None):
@@ -72,3 +71,11 @@ def expand_shape(shape, default_depth=None):
         depth = default_depth
         height, width = shape
     return depth, height, width
+
+
+ALLOW_LOG = False
+
+
+def debug(*msg):
+    if ALLOW_LOG:
+        print(msg)

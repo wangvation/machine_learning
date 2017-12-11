@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import numpy as np
+from cnn_utils import *
 
 
-class fully_connect_layer(object):
+class fc_layer(object):
     """
     fully connect layer
     action:action function
@@ -25,11 +26,12 @@ class fully_connect_layer(object):
         '''
         self.action = action
         self.action_derive = action_derive
+        self.layers = layers
+        self.input_shape = (layers[0], 1)
         std = 1.0 / np.sqrt(layers[1] * layers[0])
-        weights = np.random.normal(loc=0.0,
-                                   scale=std,
-                                   size=(layers[1], layers[0]))
-        self.weights = np.mat(weights)
+        self.weights = np.random.normal(loc=0.0,
+                                        scale=std,
+                                        size=(layers[1], layers[0]))
         self.bias = np.zeros((layers[1], 1))
         self.weights_grad = np.zeros(self.weights.shape)
         self.bias_grad = np.zeros(self.bias.shape)
@@ -41,24 +43,27 @@ class fully_connect_layer(object):
         action:action function
         action_derive:action derive
         layers:layer list
-        input_array:input array
+        input_array:input array like np.zeros((n,1))
         alpha:learning rate
 
         '''
-        self.input_mat = np.mat(input_array)
-        weighted_sum = self.weights * self.input_mat + self.bias
+        debug('fully_connect:\n', input_array)
+        self.input_array = input_array.reshape(self.input_shape)
+        weighted_sum = np.dot(self.weights, self.input_array) + self.bias
         self.out_put = self.action(weighted_sum)
         return self.out_put
 
-    def backward(self, delta_mat):
-        self.delta_mat = np.multiply(self.weights.T * delta_mat,
-                                     self.action_derive(self.out_put))
-        self.clac_gradient(delta_mat)
-        return self.delta_mat
+    def backward(self, delta_map):
+        debug('fclayer :', np.sum(delta_map), self.layers)
+        self.delta_map = np.multiply(np.dot(self.weights.T, delta_map),
+                                     self.action_derive(self.input_array))
+        self.clac_gradient(delta_map)
+        return self.delta_map
 
-    def clac_gradient(self, delta_mat):
-        self.weights_grad += delta_mat * self.input_mat.T
-        self.bias_grad += delta_mat
+    def clac_gradient(self, delta_map):
+        # print('fully--clac_gradient:', self.input_shape, np.sum(delta_map))
+        self.weights_grad += np.dot(delta_map, self.input_array.T)
+        self.bias_grad += delta_map
 
     def update(self, alpha, batch_size):
         """
@@ -69,5 +74,9 @@ class fully_connect_layer(object):
         Returns:
 
         """
-        self.weights -= self.alpha * self.weights_grad / batch_size
-        self.bias -= self.alpha * self.bias_grad / batch_size
+        # print('fully--:', self.input_shape,
+        #       np.sum(self.weights_grad), alpha, batch_size)
+        self.weights -= alpha * self.weights_grad / batch_size
+        self.bias -= alpha * self.bias_grad / batch_size
+        self.weights_grad[...] = 0.0
+        self.bias_grad[...] = 0.0

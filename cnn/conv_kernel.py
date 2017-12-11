@@ -18,8 +18,7 @@ class conv_kernel(pooling_kernel):
                                             size=kernel_shape)
         else:
             self.weights = weights
-        self.shape = (self.weights.shape if kernel_shape !=
-                      self.weights.shape else kernel_shape)
+        self.shape = self.weights.shape
         self.bias = bias
         self.weights_grad = np.zeros(self.weights.shape)
         self.bias_grad = 0
@@ -33,15 +32,14 @@ class conv_kernel(pooling_kernel):
         Returns:
 
         """
+        # print("conv__:", self.weights_grad, learning_rate, batch_size)
         self.weights += learning_rate * self.weights_grad / batch_size
         self.bias += learning_rate * self.bias_grad / batch_size
         self.weights_grad[:] = 0
         self.bias_grad = 0
 
     def turn_round(self):
-        """ """
-        if self.weights.ndim == 1:
-            self.weights = np.flip(self.weights, axis=0)
+        """turn round the kernel"""
         if self.weights.ndim == 2:
             tmp = np.flip(self.weights, axis=0)
             self.weights = np.flip(tmp, axis=1)

@@ -17,8 +17,8 @@ class pooling_layer(object):
         kernel_shape:the shape of pool_kernel
         pooling_type:{'max_pooling', or 'mean_pooling'}
         '''
-        self.kernel_shape = kernel_shape
-        self.pool_kernel = pooling_kernel(self.kernel_shape, stride=stride)
+        self.input_shape = input_shape
+        self.pool_kernel = pooling_kernel(kernel_shape, stride=stride)
         self.delta_map = np.zeros(input_shape, dtype=np.float32)
         self.feature_shape = pooling_kernel.calc_feature_shape(
             input_shape=input_shape, kernel_shape=kernel_shape,
@@ -35,6 +35,7 @@ class pooling_layer(object):
         ----------
         input_array:input array
         '''
+        debug('pooling_layer:\n', input_array)
         self.input_array = input_array
         return self.pooling()
 
@@ -42,52 +43,30 @@ class pooling_layer(object):
         if self.feature_shape is None:
             return
         feature_map = np.zeros(self.feature_shape, dtype=np.float32)
-        if feature_map.ndim == 3:
-            feature_depth, feature_height, feature_width = self.feature_shape
-        else:
-            feature_depth = None
-            feature_height, feature_width = self.feature_shape
-        if feature_depth is None:
-            for i in range(feature_height):
-                for j in range(feature_width):
-                    patch = self.get_patch(i, j, self.input_array,
-                                           self.pool_kernel.shape,
-                                           self.pool_kernel.stride)
+        depth, height, width = expand_shape(self.feature_shape)
+        for i in range(height):
+            for j in range(width):
+                patch = get_patch(i, j, self.input_array, self.pool_kernel)
+                if depth is None:
                     feature_map[i, j] = np.max(patch)
-        else:
-            for i in range(feature_height):
-                for j in range(feature_width):
-                    patch = get_patch(i, j, self.input_array,
-                                      self.pool_kernel.shape,
-                                      self.pool_kernel.stride)
-                    for d in range(feature_depth):
-                        feature_map[d, i, j] = np.max(patch[d, :, :])
+                    continue
+                for d in range(depth):
+                    feature_map[d, i, j] = np.max(patch[d, ...])
         return feature_map
 
     def mean_pooling(self):
         if self.feature_shape is None:
             return
         feature_map = np.zeros(self.feature_shape, dtype=np.float32)
-        if feature_map.ndim == 3:
-            feature_depth, feature_height, feature_width = self.feature_shape
-        else:
-            feature_depth = None
-            feature_height, feature_width = self.feature_shape
-        if feature_depth is None:
-            for i in range(feature_height):
-                for j in range(feature_width):
-                    patch = self.get_patch(i, j, self.input_array,
-                                           self.pool_kernel.shape,
-                                           self.pool_kernel.stride)
+        depth, height, width = expand_shape(self.feature_shape)
+        for i in range(height):
+            for j in range(width):
+                if depth is None:
+                    patch = get_patch(i, j, self.input_array, self.pool_kernel)
                     feature_map[i, j] = np.mean(patch)
-        else:
-            for i in range(feature_height):
-                for j in range(feature_width):
-                    patch = self.get_patch(i, j, self.input_array,
-                                           self.pool_kernel.shape,
-                                           self.pool_kernel.stride)
-                    for d in range(feature_depth):
-                        feature_map[d, i, j] = np.mean(patch[d, :, :])
+                    continue
+                for d in range(depth):
+                    feature_map[d, i, j] = np.mean(patch[d, ...])
         return feature_map
 
     def backward(self, delta_map):
@@ -99,18 +78,50 @@ class pooling_layer(object):
         Returns:
 
         """
-        height, width = delta_map.shape
+        debug('pooling_layer :', np.sum(delta_map), self.input_shape)
+        depth, height, width = expand_shape(delta_map.shape)
         if self.pooling_type == 'mean_pooling':
             for i in range(height):
                 for j in range(width):
-                    patch = self.get_patch(self.delta_map, i, j)
-                    patch[:] = (delta_map[i, j] /
-                                (self.width * self.height))
+                    delta_patch = get_patch(i, j, self.delta_map,
+                                            self.pool_kernel)
+                    if depth is None:
+                        delta_patch[...] = (delta_map[i, j] /
+                                            (self.width * self.height))
+                        continue
+                    for d in range(depth):
+                        delta_patch[d, ...] = (delta_map[d:, i, j] /
+                                               (self.width * self.height))
         if self.pooling_type == 'max_pooling':
             for i in range(height):
                 for j in range(width):
-                    patch = self.get_patch(self.delta_map, i, j)
-                    input_patch = get_patch(self.input_array, i, j)
-                    max_i, max_j = np.argmax(input_patch, axis=None, out=None)
-                    patch[max_i, max_j] = delta_map[i, j]
+                    delta_patch = get_patch(i, j, self.delta_map,
+                                            self.pool_kernel)
+                    input_patch = get_patch(i, j, self.input_array,
+                                            self.pool_kernel)
+                    if depth is None:
+                        argmax = np.argmax(input_patch)
+                        max_i, max_j = np.unravel_index(np.argmax(argmax),
+                                                        input_patch.shape)
+                        delta_patch[max_i, max_j] = delta_map[i, j]
+                        continue
+                    for d in range(depth):
+                        argmax = np.argmax(input_patch[d, ...])
+                        max_i, max_j = np.unravel_index(
+                            np.argmax(argmax), input_patch[d, ...].shape)
+                        delta_patch[d, max_i, max_j] = delta_map[d, i, j]
+
         return self.delta_map
+
+    def update(self, alpha, batch_size):
+        """
+        Clear the delta_map.
+        Args:
+          batch_size:batch size
+          alpha: learning rate
+
+        Returns:
+
+        """
+        self.delta_map[...] = 0.0
+        pass
