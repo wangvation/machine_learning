@@ -13,7 +13,7 @@ class pooling_layer(object):
         '''
         Parameters
         ----------
-        input_shape:the shape of input_array
+        input_shape:the shape of input
         kernel_shape:the shape of pool_kernel
         pooling_type:{'max_pooling', or 'mean_pooling'}
         '''
@@ -29,14 +29,16 @@ class pooling_layer(object):
         elif self.pooling_type == 'mean_pooling':
             self.pooling = self.mean_pooling
 
-    def forward(self, input_array):
+    def forward(self, input):
         '''
         Parameters
         ----------
-        input_array:input array
+        input:input array
         '''
-        debug('pooling_layer:\n', input_array)
-        self.input_array = input_array
+        debug(True, 'pooling_layer input:', np.max(input),
+              np.min(input), np.mean(input))
+        # self.delta_map[...] = 0.
+        self.input = input
         return self.pooling()
 
     def max_pooling(self):
@@ -46,7 +48,7 @@ class pooling_layer(object):
         depth, height, width = expand_shape(self.feature_shape)
         for i in range(height):
             for j in range(width):
-                patch = get_patch(i, j, self.input_array, self.pool_kernel)
+                patch = get_patch(i, j, self.input, self.pool_kernel)
                 if depth is None:
                     feature_map[i, j] = np.max(patch)
                     continue
@@ -62,7 +64,7 @@ class pooling_layer(object):
         for i in range(height):
             for j in range(width):
                 if depth is None:
-                    patch = get_patch(i, j, self.input_array, self.pool_kernel)
+                    patch = get_patch(i, j, self.input, self.pool_kernel)
                     feature_map[i, j] = np.mean(patch)
                     continue
                 for d in range(depth):
@@ -78,7 +80,8 @@ class pooling_layer(object):
         Returns:
 
         """
-        debug('pooling_layer :', np.sum(delta_map), self.input_shape)
+        debug(True, 'pooling_layer-backward :', self.input_shape,
+              np.max(delta_map), np.min(delta_map), np.mean(delta_map))
         depth, height, width = expand_shape(delta_map.shape)
         if self.pooling_type == 'mean_pooling':
             for i in range(height):
@@ -97,7 +100,7 @@ class pooling_layer(object):
                 for j in range(width):
                     delta_patch = get_patch(i, j, self.delta_map,
                                             self.pool_kernel)
-                    input_patch = get_patch(i, j, self.input_array,
+                    input_patch = get_patch(i, j, self.input,
                                             self.pool_kernel)
                     if depth is None:
                         argmax = np.argmax(input_patch)
@@ -115,7 +118,7 @@ class pooling_layer(object):
 
     def update(self, alpha, batch_size):
         """
-        Clear the delta_map.
+        do nothing.
         Args:
           batch_size:batch size
           alpha: learning rate
@@ -123,5 +126,4 @@ class pooling_layer(object):
         Returns:
 
         """
-        self.delta_map[...] = 0.0
         pass

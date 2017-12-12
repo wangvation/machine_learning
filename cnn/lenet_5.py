@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
+import random
 from conv_layer import conv_layer
 from fully_connect_layer import fc_layer
 from softmax_layer import softmax_layer
@@ -35,10 +36,9 @@ class lenet_5(object):
         self.layers.append(fc_layer(action=self.relu,
                                     action_derive=self.relu_derive,
                                     layers=(120, 84)))
-        self.layers.append(fc_layer(action=self.relu,
-                                    action_derive=self.relu_derive,
-                                    layers=(84, 10)))
-        self.layers.append(softmax_layer(10))
+        self.layers.append(softmax_layer(action=self.relu,
+                                         action_derive=self.relu_derive,
+                                         layers=(84, 10)))
 
     def train(self, train_set, targets, alpha, method='SGD'):
         data_size, h, w = train_set.shape
@@ -47,11 +47,11 @@ class lenet_5(object):
             batch_size, batch_index = self.get_batch(method, data_size)
             errors = 0
             for i in batch_index:
-                out_put = train_set[i, ...]
+                output = train_set[i, ...]
                 target = targets[i]
                 for layer in self.layers:
-                    out_put = layer.forward(out_put)
-                error = self.mean_square_error(out_put, target)
+                    output = layer.forward(output)
+                error = self.layers[-1].get_error(target)
                 if error < 0.01:
                     print('error', error)
                     continue
@@ -72,9 +72,6 @@ class lenet_5(object):
             out = layer.forward(out)
         return np.argmax(out)
 
-    def cross_entropy(self, y, target):
-        return -np.sum(target * np.log(np.array(y)))
-
     def mean_square_error(self, y, target):
         minus = y - target
         return np.sum(np.multiply(minus, minus)) / 2.0
@@ -84,22 +81,20 @@ class lenet_5(object):
             indexes = range(data_size)
             return data_size, indexes
         if method == 'SGD':  # Stochastic gradient descent
-            indexes = [np.random.randint(low=0, high=data_size, size=1)]
+            indexes = [random.randint(0, data_size)]
             return 1, indexes
         if method == 'MBGD':  # Mini-batch gradient descent
             m = 10
-            indexes = np.random.randint(low=0, high=data_size, size=m)
+            indexes = [random.randint(0, data_size) for _ in range(m)]
             return m, indexes
 
     def relu(self, array):
         array[array < 0] = 0.0
-        while np.sum(array > 10) > 0:
-            array = array / 10
         return array
 
     def relu_derive(self, y):
         derive = np.zeros(y.shape)
-        derive[np.nonzero(y > 0.0)] = 1.0
+        derive[y > 0] = 1.0
         return derive
 
     def softplus(self, x):
@@ -114,6 +109,12 @@ class lenet_5(object):
 
     def sigmoid_derive(self, y):
         return np.multiply(y, (1 - y))
+
+    def tanh(self, x):
+        return np.tanh(x)
+
+    def tanh_derive(self, y):
+        return 1.0 - np.power(y, 2)
 
 
 def load_mnist(images_path, labels_path):
@@ -138,7 +139,7 @@ def normalize(array):
 
 
 def one_hot(data):
-    arr = np.zeros((len(data), 10, 1), dtype=np.float32)
+    arr = np.zeros((len(data), 10, 1))
     arr[np.arange(len(data)), data] = 1.0
     return arr
 
@@ -155,7 +156,7 @@ def do_mnist():
     test_set = normalize(test_set)
     test_labels = one_hot(test_labels)
     lenet = lenet_5()
-    lenet.train(train_set, train_labels, alpha=1.0, method='MBGD')
+    lenet.train(train_set, train_labels, alpha=0.1, method='SGD')
     test_count = len(test_set)
     right_count = 0
     for i in range(100):

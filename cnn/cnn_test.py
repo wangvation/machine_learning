@@ -129,19 +129,21 @@ def conv_gradient_check():
     # 检查梯度
     epsilon = 10e-4
     depth, heigth, width = cl.kernel_shape
-    for d in range(depth):
-        for i in range(heigth):
-            for j in range(width):
-                cl.kernels[0].weights[d, i, j] += epsilon
-                cl.forward(a)
-                err1 = error_function(cl.feature_map)
-                cl.kernels[0].weights[d, i, j] -= 2 * epsilon
-                cl.forward(a)
-                err2 = error_function(cl.feature_map)
-                expect_grad = (err1 - err2) / (2 * epsilon)
-                cl.kernels[0].weights[d, i, j] += epsilon
-                print('weights(%d,%d,%d): expected - actural %f - %f' % (
-                    d, i, j, expect_grad, cl.kernels[0].weights_grad[d, i, j]))
+    for k in range(cl.kernel_num):
+        for d in range(depth):
+            for i in range(heigth):
+                for j in range(width):
+                    cl.kernels[k].weights[d, i, j] += epsilon
+                    cl.forward(a)
+                    err1 = error_function(cl.feature_map)
+                    cl.kernels[k].weights[d, i, j] -= 2 * epsilon
+                    cl.forward(a)
+                    err2 = error_function(cl.feature_map)
+                    expect_grad = (err1 - err2) / (2 * epsilon)
+                    cl.kernels[k].weights[d, i, j] += epsilon
+                    print('weights(%d,%d,%d,%d): expected - actural %f - %f' % (
+                        k, d, i, j, expect_grad,
+                        cl.kernels[k].weights_grad[d, i, j]))
 
 
 def fc_gradient_check():
@@ -171,5 +173,5 @@ def fc_gradient_check():
 
 
 if __name__ == '__main__':
-    # conv_gradient_check()
-    fc_gradient_check()
+    conv_gradient_check()
+    # fc_gradient_check()

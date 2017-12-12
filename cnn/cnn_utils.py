@@ -21,14 +21,14 @@ def around_with_zero(input_array, width_padding, height_padding):
         new_array = np.zeros((height + 2 * height_padding,
                               width + 2 * width_padding), dtype=np.float32)
         new_array[height_padding:-height_padding,
-                  width_padding:-width_padding] = input_array
+                  width_padding:-width_padding] += input_array
         return new_array
     else:
         depth, height, width = input_array.shape
         new_array = np.zeros((depth, height + 2 * height_padding,
                               width + 2 * width_padding), dtype=np.float32)
         new_array[:, height_padding:-height_padding,
-                  width_padding:-width_padding] = input_array
+                  width_padding:-width_padding] += input_array
         return new_array
 
 
@@ -73,9 +73,7 @@ def expand_shape(shape, default_depth=None):
     return depth, height, width
 
 
-ALLOW_LOG = False
-
-
-def debug(*msg):
-    if ALLOW_LOG:
-        print(msg)
+def debug(allow_log=False, *msg):
+    # if allow_log is True:
+    #     print(msg)
+    pass

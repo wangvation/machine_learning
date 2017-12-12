@@ -12,9 +12,9 @@ class conv_kernel(pooling_kernel):
         super(conv_kernel, self).__init__(kernel_shape, stride)
         if weights is None:
             depth, height, width = expand_shape(kernel_shape, 1)
-            std = 1.0 / np.sqrt(depth * height * width)
+            # std = np.sqrt(6.0 / depth + height + width)
             self.weights = np.random.normal(loc=0.0,
-                                            scale=std,
+                                            scale=0.03,
                                             size=kernel_shape)
         else:
             self.weights = weights
@@ -33,9 +33,9 @@ class conv_kernel(pooling_kernel):
 
         """
         # print("conv__:", self.weights_grad, learning_rate, batch_size)
-        self.weights += learning_rate * self.weights_grad / batch_size
-        self.bias += learning_rate * self.bias_grad / batch_size
-        self.weights_grad[:] = 0
+        self.weights -= learning_rate * self.weights_grad / batch_size
+        self.bias -= learning_rate * self.bias_grad / batch_size
+        self.weights_grad[...] = 0
         self.bias_grad = 0
 
     def turn_round(self):
