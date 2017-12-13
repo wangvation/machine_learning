@@ -33,9 +33,11 @@ class conv_layer(object):
         self.kernel_num = kwargs['kernel_num']
         self.weights = []
         self.bias = []
+        d, h, w = expand_shape(self.kernel_shape, 1)
+        std = np.sqrt(1.0 / d * h * w)
         for k in range(self.kernel_num):
             weight = np.random.normal(loc=0.0,
-                                      scale=0.05,
+                                      scale=std,
                                       size=self.kernel_shape)
             self.weights.append(weight)
             self.bias.append(0.0)
@@ -162,6 +164,10 @@ class conv_layer(object):
 
         """
         for k in range(self.kernel_num):
+            debug(True, 'conv_layer grad:', self.input_shape, k,
+                  np.max(self.weights_grad[k]),
+                  np.min(self.weights_grad[k]),
+                  np.mean(self.weights_grad[k]))
             self.weights[k] -= alpha * self.weights_grad[k] / batch_size
             self.bias[k] -= alpha * self.bias_grad[k] / batch_size
             self.weights_grad[k][...] = 0.0

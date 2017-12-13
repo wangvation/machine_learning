@@ -10,9 +10,9 @@ class softmax_layer(object):
     def __init__(self, action, action_derive, layers):
         self.layers = layers
         self.input_shape = (layers[0], 1)
-        # std = np.sqrt(6.0 / layers[1] + layers[0])
+        std = np.sqrt(1.0 / layers[1] * layers[0])
         self.weights = np.random.normal(loc=0.0,
-                                        scale=0.05,
+                                        scale=std,
                                         size=(layers[1], layers[0]))
         self.bias = np.zeros((layers[1], 1))
         self.weights_grad = np.zeros(self.weights.shape)
@@ -39,7 +39,7 @@ class softmax_layer(object):
     def cross_entropy(self, z, target):
         j = np.argmax(target)
         _max = np.max(z)
-        return -np.log(np.exp(z[j] - _max) / np.sum(np.exp(z - _max)))
+        return (_max - z[j]) + np.log(np.exp(np.sum(np.exp(z - _max))))
 
     def backward(self, targets):
         delta_map = self.out_put - targets
@@ -66,6 +66,9 @@ class softmax_layer(object):
         """
         # print('softmax--:', self.input_shape,
         #       np.sum(self.weights_grad), alpha, batch_size)
+        debug(True, 'softmax_layer grad:', self.layers,
+              np.max(self.weights_grad),
+              np.min(self.weights_grad), np.mean(self.weights_grad))
         self.weights -= alpha * self.weights_grad / batch_size
         self.bias -= alpha * self.bias_grad / batch_size
         self.weights_grad[...] = 0.0

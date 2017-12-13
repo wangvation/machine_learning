@@ -63,7 +63,7 @@ def expand_shape(shape, default_depth=None):
 
     Returns:
     depth, height, width
-    if the length of shape is 2, depth is None,
+    if the length of shape is 2, depth is default_depth,
     """
     if len(shape) == 3:
         depth, height, width = shape
@@ -74,6 +74,6 @@ def expand_shape(shape, default_depth=None):
 
 
 def debug(allow_log=False, *msg):
-    # if allow_log is True:
-    #     print(msg)
+    if allow_log is False:
+        print(msg)
     pass

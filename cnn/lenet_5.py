@@ -59,7 +59,8 @@ class lenet_5(object):
                 delta_map = self.layers[-1].backward(target)
                 for layer in self.layers[-2::-1]:
                     delta_map = layer.backward(delta_map)
-            print('errors', errors / batch_size)
+            if _iter % 10 == 0:
+                print('errors', errors / batch_size)
             for layer in self.layers:
                 layer.update(alpha, batch_size)
             _iter += 1
@@ -75,6 +76,10 @@ class lenet_5(object):
     def mean_square_error(self, y, target):
         minus = y - target
         return np.sum(np.multiply(minus, minus)) / 2.0
+
+    def cross_entropy(self, y, target):
+        return np.sum(-np.multiply(target, np.log(y)) -
+                      np.multiply(1 - target, np.log(1 - y)))
 
     def get_batch(self, method, data_size):
         if method == 'BGD':  # Batch gradient descent
@@ -135,7 +140,7 @@ def load_mnist(images_path, labels_path):
 
 
 def normalize(array):
-    return array.astype(np.float32) / 255.0
+    return array / 255.0
 
 
 def one_hot(data):
@@ -156,7 +161,7 @@ def do_mnist():
     test_set = normalize(test_set)
     test_labels = one_hot(test_labels)
     lenet = lenet_5()
-    lenet.train(train_set, train_labels, alpha=0.01, method='SGD')
+    lenet.train(train_set, train_labels, alpha=0.05, method='SGD')
     test_count = len(test_set)
     right_count = 0
     for i in range(100):
@@ -181,7 +186,7 @@ def do_kaggle():
     test_set = test_set.reshape(test_count, 28, 28)
 
     lenet = lenet_5()
-    lenet.train(train_set, target_set, alpha=0.3, method='MBGD')
+    lenet.train(train_set, target_set, alpha=0.01, method='MBGD')
     submission = []
     for i in range(test_count):
         label = lenet.classifier(test_set[i])

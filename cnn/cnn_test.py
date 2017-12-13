@@ -227,6 +227,6 @@ def softmax_gradient_check():
 
 
 if __name__ == '__main__':
-    # conv_gradient_check()
+    conv_gradient_check()
     # fc_gradient_check()
-    softmax_gradient_check()
+    # softmax_gradient_check()
