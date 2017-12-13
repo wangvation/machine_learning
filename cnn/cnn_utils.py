@@ -32,7 +32,7 @@ def around_with_zero(input_array, width_padding, height_padding):
         return new_array
 
 
-def get_patch(i, j, array, p_kernel):
+def get_patch(i, j, array, kernel_shape, stride):
     """
 
     Args:
@@ -44,9 +44,9 @@ def get_patch(i, j, array, p_kernel):
     Returns:
 
     """
-    depth, width, height = expand_shape(p_kernel.shape)
-    start_i = i * p_kernel.stride
-    start_j = j * p_kernel.stride
+    depth, width, height = expand_shape(kernel_shape)
+    start_i = i * stride
+    start_j = j * stride
 
     if depth is None:
         return array[start_i:start_i + height,

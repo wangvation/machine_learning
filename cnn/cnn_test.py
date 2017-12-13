@@ -21,7 +21,7 @@ def identify(x):
     return x
 
 
-def identify_derv(y):
+def identify_derive(y):
     return np.ones(y.shape)
 
 
@@ -83,11 +83,11 @@ def init_conv_test():
           [0, 0, 0],
           [1, 2, 1]]])
     cl = conv_layer(action=identify, zero_padding=1,
-                    action_derive=identify_derv,
+                    action_derive=identify_derive,
                     input_shape=(3, 5, 5), kernel_stride=2,
                     kernel_shape=(3, 3, 3), kernel_num=2)
 
-    cl.kernels[0].weights = np.array(
+    cl.weights[0] = np.array(
         [[[-1, 1, 0],
           [0, 1, 0],
           [0, 1, 1]],
@@ -97,8 +97,8 @@ def init_conv_test():
          [[0, 0, -1],
           [0, 1, 0],
           [1, -1, -1]]], dtype=np.float64)
-    cl.kernels[0].bias = 1
-    cl.kernels[1].weights = np.array(
+    cl.bias[0] = 1
+    cl.weights[1] = np.array(
         [[[1, 1, -1],
           [-1, -1, 1],
           [0, -1, 1]],
@@ -133,17 +133,17 @@ def conv_gradient_check():
         for d in range(depth):
             for i in range(heigth):
                 for j in range(width):
-                    cl.kernels[k].weights[d, i, j] += epsilon
+                    cl.weights[k][d, i, j] += epsilon
                     cl.forward(a)
-                    err1 = error_function(cl.feature_map)
-                    cl.kernels[k].weights[d, i, j] -= 2 * epsilon
+                    err1 = error_function(cl.feature_map[k])
+                    cl.weights[k][d, i, j] -= 2 * epsilon
                     cl.forward(a)
-                    err2 = error_function(cl.feature_map)
+                    err2 = error_function(cl.feature_map[k])
                     expect_grad = (err1 - err2) / (2 * epsilon)
-                    cl.kernels[k].weights[d, i, j] += epsilon
+                    cl.weights[k][d, i, j] += epsilon
                     print('weights(%d,%d,%d,%d): expected - actural %f - %f' % (
                         k, d, i, j, expect_grad,
-                        cl.kernels[k].weights_grad[d, i, j]))
+                        cl.weights_grad[k][d, i, j]))
 
 
 def fc_gradient_check():

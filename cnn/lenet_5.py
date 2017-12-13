@@ -156,7 +156,7 @@ def do_mnist():
     test_set = normalize(test_set)
     test_labels = one_hot(test_labels)
     lenet = lenet_5()
-    lenet.train(train_set, train_labels, alpha=0.1, method='SGD')
+    lenet.train(train_set, train_labels, alpha=0.01, method='SGD')
     test_count = len(test_set)
     right_count = 0
     for i in range(100):
@@ -181,7 +181,7 @@ def do_kaggle():
     test_set = test_set.reshape(test_count, 28, 28)
 
     lenet = lenet_5()
-    lenet.train(train_set, target_set, alpha=0.3, method='MSGD')
+    lenet.train(train_set, target_set, alpha=0.3, method='MBGD')
     submission = []
     for i in range(test_count):
         label = lenet.classifier(test_set[i])

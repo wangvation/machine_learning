@@ -39,7 +39,7 @@ class softmax_layer(object):
     def cross_entropy(self, z, target):
         j = np.argmax(target)
         _max = np.max(z)
-        return (_max - z[j]) + np.log(np.sum(np.exp(z - _max)))
+        return -np.log(np.exp(z[j] - _max) / np.sum(np.exp(z - _max)))
 
     def backward(self, targets):
         delta_map = self.out_put - targets
