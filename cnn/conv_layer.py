@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import numpy as np
-from conv_kernel import conv_kernel
 from cnn_utils import *
 
 
@@ -36,14 +35,14 @@ class conv_layer(object):
         self.bias = []
         for k in range(self.kernel_num):
             weight = np.random.normal(loc=0.0,
-                                      scale=0.03,
+                                      scale=0.05,
                                       size=self.kernel_shape)
             self.weights.append(weight)
             self.bias.append(0.0)
         self.weights_grad = [np.zeros(w.shape) for w in self.weights]
         self.bias_grad = [0.0 for b in self.bias]
         self.feature_map = None
-        self.feature_shape = conv_kernel.calc_feature_shape(
+        self.feature_shape = self.calc_feature_shape(
             input_shape=self.input_shape, kernel_shape=self.kernel_shape,
             kernel_num=self.kernel_num, padding=self.padding,
             stride=self.kernel_stride)

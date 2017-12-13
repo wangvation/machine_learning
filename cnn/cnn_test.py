@@ -3,6 +3,7 @@
 import numpy as np
 from conv_layer import conv_layer
 from fully_connect_layer import fc_layer
+from softmax_layer import softmax_layer
 
 
 def relu(array):
@@ -56,6 +57,39 @@ def init_fc_test():
     fc.weights = weights
     fc.bias = bias
     return fc, weights, bias, input_array, target
+
+
+def init_softmax_test():
+    input_array = np.array(
+        [1., 2., 0., 2., 1., 2., 0., 1., 1., 0., 1., 0., 1., 2., 1., 2.])
+    input_array = input_array.reshape(16, 1)
+    weights = np.array([[-0.1, 0.1, -0.1, 0.1, -0.1, 0.1, -0.1,
+                         0.1, 0.1, 0.1, -0.1, 0.1, 0.1, -0.1, -0.1, 0.1],
+                        [0.1, -0.1, 0.1, 0.1, -0.1, 0.1, -0.1,
+                         0.1, -0.1, 0.1, 0.1, -0.1, 0.1, - 0.1, -0.1, -0.1],
+                        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+                         0.1, -0.1, 0.1, -0.1, -0.1, 0.1, -0.1, 0.1, -0.1],
+                        [0.1, -0.1, 0.1, -0.1, 0.1, 0.1, 0.1,
+                         0.1, -0.1, 0.1, 0.1, -0.1, 0.1, -0.1, 0.1, -0.1],
+                        [0.1, -0.1, 0.1, -0.1, 0.1, 0.1, 0.1,
+                         0.1, 0.1, -0.1, 0.1, -0.1, 0.1, -0.1, 0.1, -0.1],
+                        [0.1, 0.1, -0.1, 0.1, 0.1, 0.1, 0.1,
+                         0.1, -0.1, 0.1, 0.1, -0.1, 0.1, -0.1, 0.1, 0.1],
+                        [0.1, 0.1, -0.1, 0.1, 0.1, 0.1, 0.1,
+                         0.1, 0.1, -0.1, -0.1, -0.1, -0.1, -0.1, 0.1, 0.1],
+                        [0.1, 0.1, -0.1, 0.1, 0.1, 0.1, 0.1,
+                         0.1, 0.1, 0.1, 0.1, -0.1, 0.1, -0.1, 0.1, 0.1],
+                        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+                         0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, 0.1, 0.1],
+                        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+                         0.1, -0.1, -0.1, 0.1, -0.1, 0.1, -0.1, 0.1, -0.1]])
+    bias = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]).reshape(10, 1)
+    target = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                       0.0, 1.0, 0.0, 0.0]).reshape(10, 1)
+    sl = softmax_layer(action=relu, action_derive=relu_derive, layers=[16, 10])
+    sl.weights = weights
+    sl.bias = bias
+    return sl, weights, bias, input_array, target
 
 
 def init_conv_test():
@@ -172,6 +206,27 @@ def fc_gradient_check():
                 j, i, expect_grad, fc.weights_grad[j, i]))
 
 
+def softmax_gradient_check():
+    sl, weights, bias, input_array, target = init_softmax_test()
+    sl.forward(input_array)
+    # delta_map = out - target
+    sl.backward(target)
+    epsilon = 10e-4
+    for i in range(sl.layers[0]):
+        for j in range(sl.layers[1]):
+            sl.weights[j, i] += epsilon
+            sl.forward(input_array)
+            err1 = sl.get_error(target)
+            sl.weights[j, i] -= 2 * epsilon
+            sl.forward(input_array)
+            err2 = sl.get_error(target)
+            expect_grad = (err1 - err2) / (2 * epsilon)
+            sl.weights[j, i] += epsilon
+            print('weights(%d,%d): expected - actural %f - %f' % (
+                j, i, expect_grad, sl.weights_grad[j, i]))
+
+
 if __name__ == '__main__':
-    conv_gradient_check()
+    # conv_gradient_check()
     # fc_gradient_check()
+    softmax_gradient_check()

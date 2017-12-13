@@ -12,7 +12,7 @@ class softmax_layer(object):
         self.input_shape = (layers[0], 1)
         # std = np.sqrt(6.0 / layers[1] + layers[0])
         self.weights = np.random.normal(loc=0.0,
-                                        scale=0.03,
+                                        scale=0.05,
                                         size=(layers[1], layers[0]))
         self.bias = np.zeros((layers[1], 1))
         self.weights_grad = np.zeros(self.weights.shape)
