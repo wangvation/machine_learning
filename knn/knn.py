@@ -6,7 +6,7 @@ import pycuda.driver as drv
 from pycuda.compiler import SourceModule
 import pandas as pd
 sys.path.append("../common")
-import heap
+from heap import Heap
 
 
 mod = SourceModule("""
@@ -73,11 +73,11 @@ class KNN(object):
         pass
 
     def eulidean_distance(self, item1, item2):
-        temp = np.sum((item1[1:] - item2[1:])**2)
+        temp = np.sum((item1 - item2)**2)
         return temp
 
     def manhattan_distance(self, item1, item2):
-        temp = np.sum(np.abs(item1[1:] - item2[1:]))
+        temp = np.sum(np.abs(item1 - item2))
         return temp
 
     def __findLabel(self, data_seq):
@@ -96,7 +96,7 @@ class KNN(object):
         return result_label
 
     def classifier(self, item):
-        _heap = heap.Heap(type="max_heap", capacity=self.__K)
+        _heap = Heap(type="max_heap", capacity=self.__K)
         sample_count = len(self.__train_set)
         dist_set = np.zeros((sample_count, 1), dtype=np.float32)
         eulidean_distance_gpu(drv.In(self.__train_set), drv.In(item),

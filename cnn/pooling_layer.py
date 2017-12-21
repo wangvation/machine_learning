@@ -35,8 +35,7 @@ class pooling_layer(object):
         ----------
         input:input array
         '''
-        debug(True, 'pooling_layer input:', np.max(input),
-              np.min(input), np.mean(input))
+        debug(True, 'pooling_layer input:', square_sum(input))
         # self.delta_map[...] = 0.
         self.input = input
         return self.pooling()

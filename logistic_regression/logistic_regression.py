@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -65,10 +64,10 @@ if __name__ == '__main__':
     # 0 for benign, 1 for malignant
     data[col_list[-1]] = data[col_list[-1]].apply(lambda x: 1 if x == 4 else 0)
     data_size = len(data.values)
-    x = data_size / 10
-    data_index = range(data_size)
     # k - fold CrossValidation
     K = 10
+    x = data_size // K
+    data_index = range(data_size)
     errors = []
     rights = []
     for i in range(K):

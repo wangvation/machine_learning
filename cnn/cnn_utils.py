@@ -77,3 +77,7 @@ def debug(allow_log=False, *msg):
     if allow_log is False:
         print(msg)
     pass
+
+
+def square_sum(x):
+    return np.sum(np.multiply(x, x))

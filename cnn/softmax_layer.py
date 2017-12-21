@@ -10,9 +10,9 @@ class softmax_layer(object):
     def __init__(self, action, action_derive, layers):
         self.layers = layers
         self.input_shape = (layers[0], 1)
-        std = np.sqrt(1.0 / layers[1] * layers[0])
+        # std = np.sqrt(1.0 / layers[1] * layers[0])
         self.weights = np.random.normal(loc=0.0,
-                                        scale=std,
+                                        scale=0.1,
                                         size=(layers[1], layers[0]))
         self.bias = np.zeros((layers[1], 1))
         self.weights_grad = np.zeros(self.weights.shape)
@@ -21,8 +21,7 @@ class softmax_layer(object):
 
     def forward(self, input):
         self.input = input
-        debug(True, 'softmax_layer input:', np.max(self.input),
-              np.min(self.input), np.mean(self.input))
+        debug(True, 'softmax_layer input:', square_sum(self.input))
         self.weighted_sum = np.dot(self.weights, self.input) + self.bias
         self.out_put = self.softmax(self.weighted_sum)
         return self.out_put
@@ -43,8 +42,7 @@ class softmax_layer(object):
 
     def backward(self, targets):
         delta_map = self.out_put - targets
-        debug(True, 'softmaxlayer-backward:', self.layers,
-              np.max(delta_map), np.min(delta_map), np.mean(delta_map))
+        debug(True, 'softmax-backward:', self.layers, square_sum(delta_map))
         self.delta_map = np.multiply(np.dot(self.weights.T, delta_map),
                                      self.action_derive(self.input))
         self.clac_gradient(delta_map)
@@ -67,8 +65,7 @@ class softmax_layer(object):
         # print('softmax--:', self.input_shape,
         #       np.sum(self.weights_grad), alpha, batch_size)
         debug(True, 'softmax_layer grad:', self.layers,
-              np.max(self.weights_grad),
-              np.min(self.weights_grad), np.mean(self.weights_grad))
+              square_sum(self.weights_grad))
         self.weights -= alpha * self.weights_grad / batch_size
         self.bias -= alpha * self.bias_grad / batch_size
         self.weights_grad[...] = 0.0

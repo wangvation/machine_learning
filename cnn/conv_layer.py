@@ -31,28 +31,29 @@ class conv_layer(object):
         self.kernel_shape = kwargs['kernel_shape']
         self.kernel_stride = kwargs['kernel_stride']
         self.kernel_num = kwargs['kernel_num']
-        self.weights = []
-        self.bias = []
-        d, h, w = expand_shape(self.kernel_shape, 1)
-        std = np.sqrt(1.0 / d * h * w)
-        for k in range(self.kernel_num):
-            weight = np.random.normal(loc=0.0,
-                                      scale=std,
-                                      size=self.kernel_shape)
-            self.weights.append(weight)
-            self.bias.append(0.0)
-        self.weights_grad = [np.zeros(w.shape) for w in self.weights]
-        self.bias_grad = [0.0 for b in self.bias]
         self.feature_map = None
         self.feature_shape = self.calc_feature_shape(
             input_shape=self.input_shape, kernel_shape=self.kernel_shape,
             kernel_num=self.kernel_num, padding=self.padding,
             stride=self.kernel_stride)
+        self.weights = []
+        self.bias = []
+        d, h, w = expand_shape(self.kernel_shape, 1)
+        # std = np.sqrt(1.0 / d * h * w)
+        # bound = np.sqrt(6. / (d * h * w + self.kernel_num * h * w // (2 * 2)))
+        for k in range(self.kernel_num):
+            weight = np.random.normal(loc=0.0, scale=0.1,
+                                      size=self.kernel_shape)
+            # weight = np.random.uniform(-bound, bound,
+            #                            size=self.kernel_shape)
+            self.weights.append(weight)
+            self.bias.append(0.0)
+        self.weights_grad = [np.zeros(w.shape) for w in self.weights]
+        self.bias_grad = [0.0 for b in self.bias]
 
     def forward(self, input):
         self.input = input.reshape(self.input_shape)
-        debug(True, 'conv_layer input:', np.max(self.input),
-              np.min(self.input), np.mean(self.input))
+        debug(True, 'conv_layer input:', square_sum(self.input))
         padding_array = around_with_zero(input_array=self.input,
                                          width_padding=self.padding,
                                          height_padding=self.padding)
@@ -84,8 +85,8 @@ class conv_layer(object):
 
     def backward(self, delta_map):
         '''误差反向传递'''
-        debug(True, 'conv layer-backward:', self.input_shape,
-              np.max(delta_map), np.min(delta_map), np.mean(delta_map))
+        debug(True, 'conv layer-backward:',
+              self.input_shape, square_sum(delta_map))
         delta_map = delta_map.reshape(self.feature_shape)
         one_stride_map = self.extend_to_one_stride(self.kernel_shape,
                                                    self.kernel_stride,
@@ -165,9 +166,7 @@ class conv_layer(object):
         """
         for k in range(self.kernel_num):
             debug(True, 'conv_layer grad:', self.input_shape, k,
-                  np.max(self.weights_grad[k]),
-                  np.min(self.weights_grad[k]),
-                  np.mean(self.weights_grad[k]))
+                  square_sum(self.weights_grad[k]))
             self.weights[k] -= alpha * self.weights_grad[k] / batch_size
             self.bias[k] -= alpha * self.bias_grad[k] / batch_size
             self.weights_grad[k][...] = 0.0

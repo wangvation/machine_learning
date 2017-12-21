@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
 
@@ -29,8 +29,8 @@ class Heap(object):
     '''
 
     def __init__(self, type="min_heap", element_seq=[], capacity=-1):
-        self.__elements = capacity != - \
-            1 and element_seq[:capacity] or list(element_seq)
+        self.__elements = (capacity != -
+                           1 and element_seq[:capacity] or list(element_seq))
         self.__type = type
         self.__capacity = capacity
         self.__build_heap()
