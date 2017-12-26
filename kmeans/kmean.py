@@ -26,12 +26,12 @@ class KMeans(object):
         indexes = [random.randint(0, self.data_size)
                    for _ in range(self.K)]
         self.cent_mass = self.train_set[indexes]
-        # _iter = 0
+        _iter = 0
         while self.cluster() > 0 and self.update_cent_mass() > 0:
-            # _iter += 1
-            # _iter % 10 == 0 or print(_iter)
-            # if _iter > 1000:
-            #     break
+            _iter += 1
+            _iter % 100 == 0 and print(_iter)
+            if _iter > 1000:
+                break
             pass
         self.bind_label()
 
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     rights = []
     for i in range(K):
         test_index = [random.randint(0, data_size - 1)
-                      for _ in range(data_size // 5)]
+                      for _ in range(data_size // K)]
         train_index = list(set(data_index) ^ set(test_index))
         test_set = data[col_list[1:-1]].iloc[test_index].values
         test_label = data[col_list[-1]].iloc[test_index].values
