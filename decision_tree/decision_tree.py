@@ -320,14 +320,10 @@ if __name__ == '__main__':
         tp.createPlot(decision_tree.tree())
     submission = []
     submission.append(['PassengerId', 'Survived'])
-    right_count = 0
     count = len(test_set)
     for i in range(count):
         label = decision_tree.classifier(test_set[i])
         submission.append([test_set[i][0], label])
-        if label == gender_submission[i + 1][1]:
-            right_count += 1
     submission_df = pd.DataFrame(data=submission,
                                  columns=['PassengerId', 'Survived'])
     submission_df.to_csv('submission.csv', index=False)
-    print(str(right_count) + "/" + str(count))

@@ -19,34 +19,33 @@ class nvaie_bayesian(object):
     def __init__(self, train_set, label_set):
         '''
         '''
-        self.__attrs = train_set[0]
-        self.__train_set = train_set[1:]
-        self.__attrs_set = {x: {} for x in self.__attrs}
-        self.__label_set = label_set
-        self.__label_p = {}
+        self._attrs = train_set[0]
+        self._train_set = train_set[1:]
+        self._attrs_set = {x: {} for x in self._attrs}
+        self._label_set = label_set
+        self._label_p = {}
         pass
 
     def fit(self):
-        for label in self.__label_set:
-            if label in self.__label_p:
-                self.__label_p[label] += 1
+        for label in self._label_set:
+            if label in self._label_p:
+                self._label_p[label] += 1
             else:
-                self.__label_p[label] = 1
-        train_set_size = len(self.__train_set)
-        for key, value in self.__label_p.items():
-            self.__label_p[key] = value / train_set_size
-        for example in self.__train_set:
+                self._label_p[label] = 1
+        train_set_size = len(self._train_set)
+        for key, value in self._label_p.items():
+            self._label_p[key] = value / train_set_size
+        for example in self._train_set:
             example_size = len(example)
             for i in range(example_size):
                 attr = example[i]
-                attr_p = self.__attrs_set[self.__attrs[i]]
+                attr_p = self._attrs_set[self._attrs[i]]
                 if attr in attr_p:
                     attr_p[attr] += 1
                 else:
                     attr_p[attr] = 1
-        attrs_size = len(self.__attrs)
-        for x in self.__attrs:
-            attr_p = self.__attrs_set[x]
+        for x in self._attrs:
+            attr_p = self._attrs_set[x]
             for k, v in attr_p.items():
                 attr_p[k] = v / train_set_size
 
@@ -55,10 +54,10 @@ class nvaie_bayesian(object):
         best_p = None
         px = 1
         pxory = 1  # P(X|Y)
-        for label, py in self.__label_p.items():
+        for label, py in self._label_p.items():
             for i in range(len(item)):
-                attr = self.__attrs[i]
-                attr_p = self.__attrs_set[attr]
+                attr = self._attrs[i]
+                attr_p = self._attrs_set[attr]
                 if item[i] in attr_p:
                     px *= attr_p[item[i]]
                 pxory *= self.condiction_p(label, i, item[i])
@@ -70,44 +69,60 @@ class nvaie_bayesian(object):
 
     def condiction_p(self, label, attr_index, attr):
         num = 0
-        for i in range(len(self.__train_set)):
-            if self.__train_set[i][attr_index] == attr and self.__label_set[i] == label:
+        for i in range(len(self._train_set)):
+            if (self._train_set[i][attr_index] == attr and
+                    self._label_set[i] == label):
                 num += 1
         if num == 0:
             return 1
-        p = num / len(self.__train_set)  # p(XiY)
-        p = p / (self.__label_p[label] + 1)  # p(Xi|Y)=p(XiY)/p(Y)
+        p = num / len(self._train_set)  # p(XiY)
+        p = p / (self._label_p[label] + 1)  # p(Xi|Y)=p(XiY)/p(Y)
         return p
 
     def attr_set(self):
-        return self.__attrs_set
+        return self._attrs_set
 
     def label_p(self):
-        return self.__label_p
+        return self._label_p
 
 
 if __name__ == '__main__':
-    train_set = pd.read_csv("train.csv").values
-    for item in train_set:
-        del(item[3])
-    label_set = [x[1] for x in train_set[1:]]
-    test_set = pd.read_csv("test.csv").values
-    for item in test_set:
-        del(item[2])
-    gender_submission = pd.read_csv("gender_submission.csv").values
-    # length = len(train_set)
-    # splie_index = length * 3 // 4
-    # test_set = [x[1:] for x in train_set[splie_index:]]
-    train_set = [x[2:] for x in train_set]
-    bayesian = nvaie_bayesian(train_set, label_set)
-    bayesian.fit()
-    # print(bayesian.attr_set())
-    # print("************************************************************************")
-    print(bayesian.label_p())
-    count = len(test_set)
-    right_count = 0
-    for i in range(count):
-        label = bayesian.classifier(test_set[i][1:])
-        if label == gender_submission[i][1]:
-            right_count += 1
-    print(str(right_count) + "/" + str(count))
+    train_data = pd.read_csv("train.csv")
+    col_list = ['PassengerId', 'Survived', 'Pclass', 'Name', 'Sex', 'Age',
+                'SibSp', 'Parch', 'Ticket', 'Fare', 'Cabin', 'Embarked']
+    train_set = train_data[['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Ticket',
+                            'Fare', 'Cabin', 'Embarked']].values[1:]
+    label_set = train_data['Survived'].values[1:]
+    debug = True
+    if debug:
+        length = len(train_set)
+        splie_index = length * 3 // 4
+        test_set = train_set[splie_index:]
+        test_label = label_set[splie_index:]
+        bayesian = nvaie_bayesian(train_set, label_set)
+        bayesian.fit()
+        print(bayesian.label_p())
+        count = len(test_set)
+        right_count = 0
+        for i in range(count):
+            label = bayesian.classifier(test_set[i])
+            if label == test_label[i]:
+                right_count += 1
+        print(str(right_count) + "/" + str(count))
+    else:
+        test_data = pd.read_csv("test.csv")
+        test_set = test_data[['Pclass', 'Sex', 'Age', 'SibSp',
+                              'Parch', 'Ticket', 'Fare', 'Cabin',
+                              'Embarked']].values[1:]
+        bayesian = nvaie_bayesian(train_set, label_set)
+        bayesian.fit()
+        print(bayesian.label_p())
+        submission = []
+        submission.append(['PassengerId', 'Survived'])
+        count = len(test_set)
+        for i in range(count):
+            label = bayesian.classifier(test_set[i])
+            submission.append([test_set[i][0], label])
+        submission_df = pd.DataFrame(data=submission,
+                                     columns=['PassengerId', 'Survived'])
+        submission_df.to_csv('submission.csv', index=False)
