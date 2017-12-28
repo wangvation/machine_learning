@@ -5,7 +5,7 @@ sys.path.append("../common")
 import pandas as pd
 
 
-class nvaie_bayesian(object):
+class NvaieBayesian(object):
     '''
     朴素贝叶斯分类器
     条件概率公式：P(Y|X)=P(XY)/P(X) (X特征条件，Y类别标签)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         splie_index = length * 3 // 4
         test_set = train_set[splie_index:]
         test_label = label_set[splie_index:]
-        bayesian = nvaie_bayesian(train_set, label_set)
+        bayesian = NvaieBayesian(train_set, label_set)
         bayesian.fit()
         print(bayesian.label_p())
         count = len(test_set)
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         test_set = test_data[['Pclass', 'Sex', 'Age', 'SibSp',
                               'Parch', 'Ticket', 'Fare', 'Cabin',
                               'Embarked']].values[1:]
-        bayesian = nvaie_bayesian(train_set, label_set)
+        bayesian = NvaieBayesian(train_set, label_set)
         bayesian.fit()
         print(bayesian.label_p())
         submission = []

@@ -4,7 +4,7 @@ import numpy as np
 from cnn_utils import *
 
 
-class fc_layer(object):
+class FC_Layer(object):
     """
     fully connect layer
     action:action function

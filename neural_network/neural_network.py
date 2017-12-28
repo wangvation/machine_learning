@@ -6,8 +6,8 @@ import random
 import copy
 
 
-class neural_network(object):
-    """docstring for neural_network"""
+class NeuralNetwork(object):
+    """docstring for NeuralNetwork"""
 
     def __init__(self, layers=[], alpha=0.3, toler=0.1,
                  max_iter=10000, lamda=0.0, active_func='sigmoid',
@@ -217,9 +217,9 @@ if __name__ == '__main__':
         test_set = test_set.apply(lambda x: x / 255.0)
         test_set = test_set.values
 
-    nn = neural_network(layers=[784, 100, 10], alpha=1.0, toler=0.01,
-                        max_iter=10000, lamda=0.001, active_func='sigmoid',
-                        method='MBGD', cost='cross_entropy')
+    nn = NeuralNetwork(layers=[784, 100, 10], alpha=1.0, toler=0.01,
+                       max_iter=10000, lamda=0.001, active_func='sigmoid',
+                       method='MBGD', cost='cross_entropy')
 
     if debug:
         nn.fit(train_set, target_set, False)

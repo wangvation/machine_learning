@@ -4,36 +4,39 @@ import math
 # import matplotlib as plt
 import treePlotter as tp
 import pandas as pd
+from collections import defaultdict
 
 
-class decision_tree(object):
+class DecisionTree(object):
     def __init__(self, data_set=[], id_index=-1,
                  label_index=-1, algorithm='id3'):
-        self.__label_index = label_index
-        self.__attrs = data_set[0]
+        self._label_index = label_index
+        self._attrs = data_set[0]
         if id_index != -1:
-            self.__attrs[id_index] = None
+            self._attrs[id_index] = None
         if label_index != -1:
-            self.__attrs[label_index] = None
-        self.__train_set = data_set[1:]
-        self.__algorithm = algorithm
-        self.__root = None
+            self._attrs[label_index] = None
+        self._train_set = data_set[1:]
+        self._algorithm = algorithm
+        self._root = None
         pass
 
     def fit(self):
-        if self.__algorithm == "id3":
-            self.__root = self.build_tree_by_id3(
-                self.__train_set, self.__attrs)
-        elif self.__algorithm == "c45":
-            self.__root = self.build_tree_by_c45(
-                self.__train_set, self.__attrs)
-        elif self.__algorithm == "c50":
-            self.__root = self.build_tree_by_c50()
-        elif self.__algorithm == "cart":
-            self.__root = self.build_tree_by_cart()
+        if self._algorithm == "id3":
+            self._root = self.build_tree_by_id3(self._train_set,
+                                                self._attrs)
+        elif self._algorithm == "c45":
+            self._root = self.build_tree_by_c45(self._train_set,
+                                                self._attrs)
+        elif self._algorithm == "c50":
+            self._root = self.build_tree_by_c50(self._train_set,
+                                                self._attrs)
+        elif self._algorithm == "cart":
+            self._root = self.build_tree_by_cart(self._train_set,
+                                                 self._attrs)
 
     def build_tree_by_id3(self, data_set, attrs):
-        label_dict = self.count_attr(data_set, self.__label_index)
+        label_dict = self.count_attr(data_set, self._label_index)
         if len(label_dict.keys()) == 1:
             return label_dict.keys()[0]
         if attrs.count(None) == len(attrs):
@@ -51,7 +54,7 @@ class decision_tree(object):
         sub_attrs[attr_index] = None
         attr_dict = self.count_attr(data_set, attr_index)
         for key, value in attr_dict.items():
-            sub_set = self.sub_set_for_attr(data_set, attr_index, key)
+            sub_set = self.sub_set(data_set, attr_index, key)
             sub_tree[key] = self.build_tree_by_id3(sub_set, sub_attrs)
         return {attr_index: sub_tree}
 
@@ -61,21 +64,21 @@ class decision_tree(object):
         for i in range(len(attrs)):
             if attrs[i] is not None:
                 gain = 0
-                if self.__algorithm == "id3":
+                if self._algorithm == "id3":
                     gain = self.info_gain(data_set, i)
-                elif self.__algorithm == "c45":
+                elif self._algorithm == "c45":
                     gain = self.info_gain_rate(data_set, i)
-                elif self.__algorithm == "c50":
-                    self.__root = self.build_tree_by_c50()
-                elif self.__algorithm == "cart":
-                    self.__root = self.build_tree_by_cart()
+                elif self._algorithm == "c50":
+                    self._root = self.build_tree_by_c50()
+                elif self._algorithm == "cart":
+                    self._root = self.build_tree_by_cart()
                 if max_gain is None or gain > max_gain:
                     best_attr_index = i
                     max_gain = gain
         return best_attr_index
 
     def build_tree_by_c45(self, data_set, attrs):
-        label_dict = self.count_attr(data_set, self.__label_index)
+        label_dict = self.count_attr(data_set, self._label_index)
         if len(label_dict.keys()) == 1:
             return label_dict.keys()[0]
         if attrs.count(None) == len(attrs):
@@ -93,15 +96,15 @@ class decision_tree(object):
         sub_attrs[attr_index] = None
         attr_dict = self.count_attr(data_set, attr_index)
         for key, value in attr_dict.items():
-            sub_set = self.sub_set_for_attr(data_set, attr_index, key)
+            sub_set = self.sub_set(data_set, attr_index, key)
             sub_tree[key] = self.build_tree_by_c45(sub_set, sub_attrs)
         return {attr_index: sub_tree}
 
     def build_tree_by_c50(self, data_set, attrs):
-        label_dict = self.count_attr(data_set, self.__label_index)
+        label_dict = self.count_attr(data_set, self._label_index)
         if len(label_dict) == 1:
             return label_dict.keys()
-        if self.__attrs.count(None) == len(self.__attrs) - 1:
+        if self._attrs.count(None) == len(self._attrs) - 1:
             max_label = None
             for label, value in label_dict.items():
                 if max_label is None:
@@ -116,15 +119,15 @@ class decision_tree(object):
         sub_attrs[attr_index] = None
         attr_dict = self.count_attr(data_set, attr_index)
         for key, value in attr_dict.items():
-            sub_set = self.sub_set_for_attr(data_set, attr_index, key)
+            sub_set = self.sub_set(data_set, attr_index, key)
             sub_tree[key] = self.build_tree_by_c50(sub_set, sub_attrs)
         return {attr_index: sub_tree}
 
     def build_tree_by_cart(self, data_set, attrs):
-        label_dict = self.count_attr(data_set, self.__label_index)
+        label_dict = self.count_attr(data_set, self._label_index)
         if len(label_dict) == 1:
             return label_dict.keys()[0]
-        if self.__attrs.count(None) == len(self.__attrs) - 1:
+        if self._attrs.count(None) == len(self._attrs) - 1:
             max_label = None
             for label, value in label_dict.items():
                 if max_label is None:
@@ -139,7 +142,7 @@ class decision_tree(object):
         sub_attrs[attr_index] = None
         attr_dict = self.count_attr(data_set, attr_index)
         for key, value in attr_dict.items():
-            sub_set = self.sub_set_for_attr(data_set, attr_index, key)
+            sub_set = self.sub_set(data_set, attr_index, key)
             sub_tree[key] = self.build_tree_by_cart(sub_set, sub_attrs)
         return {attr_index: sub_tree}
 
@@ -160,7 +163,7 @@ class decision_tree(object):
         attr_entropy_exp = 0  # 特征的信息期望
         for key, value in attr_dict.items():
             p = value * 1.0 / total
-            sub_set = self.sub_set_for_attr(data_set, attr_index, key)
+            sub_set = self.sub_set(data_set, attr_index, key)
             attr_entropy_exp += p * self.info_entropy(sub_set)
         return entropy - attr_entropy_exp
 
@@ -176,14 +179,14 @@ class decision_tree(object):
         total = len(data_set)
         if total == 0:
             return 0
-        label_dict = self.count_attr(data_set, self.__label_index)
+        label_dict = self.count_attr(data_set, self._label_index)
         gini_imp = 0
         for key, value in label_dict.items():
             p = value * 1.0 / total
             gini_imp += p * p
         return 1 - gini_imp
 
-    def sub_set_for_attr(self, data_set, attr_index, attr_value):
+    def sub_set(self, data_set, attr_index, attr_value):
         sub_set = []
         for row in data_set:
             if row[attr_index] == attr_value:
@@ -201,7 +204,7 @@ class decision_tree(object):
         total = len(data_set)
         if total == 0:
             return 0
-        label_dict = self.count_attr(data_set, self.__label_index)
+        label_dict = self.count_attr(data_set, self._label_index)
         entropy = 0
         for key, value in label_dict.items():
             p = value * 1.0 / total
@@ -220,17 +223,14 @@ class decision_tree(object):
         return entropy
 
     def count_attr(self, data_set, attr_index):
-        count_dict = {}
+        count_dict = defaultdict(int)
         for row in data_set:
             attr_value = row[attr_index]
-            if attr_value in count_dict:
-                count_dict[attr_value] += 1
-            else:
-                count_dict[attr_value] = 1
+            count_dict[attr_value] += 1
         return count_dict
 
     def tree(self):
-        return self.__root
+        return self._root
 
     def count_tree(self, tree, label_dict={}):
         if isinstance(tree, dict):
@@ -246,7 +246,7 @@ class decision_tree(object):
 
     def classifier(self, item, tree=None):
         if tree is None:
-            tree = self.__root
+            tree = self._root
         for root_key, root_tree in tree.items():
             if item[root_key] in root_tree:
                 sub_tree = root_tree[item[root_key]]
@@ -264,13 +264,6 @@ class decision_tree(object):
                         max_label = key
                 return max_label
 
-    def dump(self):
-        pass
-
-    def pruning_tree(self, alpha):
-        '''决策树剪枝函数'''
-        pass
-
     def loss_function(self, tree, alpha=1):
         leave_num, leaves = self.get_leaves(tree)
         label_dict = {}
@@ -283,7 +276,7 @@ class decision_tree(object):
         for label, num in label_dict.items():
             p = num / leave_num
             loss -= num * math.log(p, 2)
-        return loss + alpha * self.node_count(self.__root)
+        return loss + alpha * self.node_count(self._root)
 
     def node_count(self, tree):
         attr_index, node = tree.items()[0]
@@ -312,7 +305,7 @@ if __name__ == '__main__':
     test_set = pd.read_csv("test.csv").values
     gender_submission = pd.read_csv("gender_submission.csv").values
     test_set = test_set[1:]
-    decision_tree = decision_tree(
+    decision_tree = DecisionTree(
         train_set, id_index=0, label_index=1, algorithm='c45')
     decision_tree.fit()
     debug = False

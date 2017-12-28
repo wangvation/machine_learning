@@ -4,8 +4,8 @@ import numpy as np
 from cnn_utils import *
 
 
-class pooling_layer(object):
-    """docstring for pooling_layer"""
+class PoolingLayer(object):
+    """docstring for PoolingLayer"""
 
     def __init__(self, input_shape, kernel_shape,
                  pooling_type='max_pooling', stride=1):
@@ -35,7 +35,7 @@ class pooling_layer(object):
         ----------
         input:input array
         '''
-        debug(True, 'pooling_layer input:', square_sum(input))
+        debug(True, 'PoolingLayer input:', square_sum(input))
         # self.delta_map[...] = 0.
         self.input = input
         return self.pooling()
@@ -81,7 +81,7 @@ class pooling_layer(object):
         Returns:
 
         """
-        debug(True, 'pooling_layer-backward :', self.input_shape,
+        debug(True, 'PoolingLayer-backward :', self.input_shape,
               np.max(delta_map), np.min(delta_map), np.mean(delta_map))
         depth, height, width = expand_shape(delta_map.shape)
         if self.pooling_type == 'mean_pooling':

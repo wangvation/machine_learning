@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import time
 
 
-class sparse_autocoder(object):
+class SparseAutocoder(object):
     def __init__(self, layers=[], alpha=0.3, toler=0.1,
                  max_iter=1000, lamda=0.00001,
                  beta=0.1, rho=0.05):
@@ -181,7 +181,7 @@ class sparse_autocoder(object):
         return 1.0 / (1.0 + np.exp(-x))
 
 
-def displayImage(images, rows, cols, patch_side):
+def display_image(images, rows, cols, patch_side):
     fig, ax = plt.subplots(
         nrows=rows,
         ncols=cols,
@@ -240,7 +240,7 @@ def load_dataset(num_patches, patch_side):
 
     """ Sample 'num_patches' random image patches """
 
-    for i in xrange(num_patches):
+    for i in range(num_patches):
 
         """ Initialize indices for patch extraction """
 
@@ -276,14 +276,14 @@ if __name__ == '__main__':
 
     training_data = load_dataset(num_patches, vis_patch_side)
     # print(training_data.shape)
-    autocoder = sparse_autocoder(layers=[input_size, hidden_size, input_size],
-                                 alpha=0.3, toler=0.1, max_iter=max_iterations,
-                                 lamda=lamda, beta=beta, rho=rho)
+    autocoder = SparseAutocoder(layers=[input_size, hidden_size, input_size],
+                                alpha=0.3, toler=0.1, max_iter=max_iterations,
+                                lamda=lamda, beta=beta, rho=rho)
     autocoder.fit(train_set=training_data, method='MBGD', is_debug=False)
-    displayImage(training_data[:, :100], rows=10,
-                 cols=10, patch_side=vis_patch_side)
+    display_image(training_data[:, :100], rows=10,
+                  cols=10, patch_side=vis_patch_side)
     result = np.zeros((input_size, 100))
     result = np.mat(result)
     for i in range(100):
         result[:, i] = autocoder.autocode(training_data[:, i])
-    displayImage(result, rows=10, cols=10, patch_side=vis_patch_side)
+    display_image(result, rows=10, cols=10, patch_side=vis_patch_side)

@@ -11,8 +11,8 @@ import struct
 import activator as act
 
 
-class lenet_5(object):
-    """docstring for lenet_5"""
+class LeNet_5(object):
+    """docstring for LeNet_5"""
 
     def __init__(self):
         self.layers = []
@@ -146,7 +146,7 @@ def do_mnist():
     train_labels = one_hot(train_labels)
     test_set = normalize(test_set)
     test_labels = one_hot(test_labels)
-    lenet = lenet_5()
+    lenet = LeNet_5()
     lenet.train(train_set, train_labels, alpha=0.0001, method='SGD')
     test_count = len(test_set)
     right_count = 0
@@ -171,7 +171,7 @@ def do_kaggle():
     test_count = len(test_set)
     test_set = test_set.reshape(test_count, 28, 28)
 
-    lenet = lenet_5()
+    lenet = LeNet_5()
     lenet.train(train_set, target_set, alpha=0.01, method='MBGD')
     submission = []
     for i in range(test_count):

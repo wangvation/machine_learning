@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-class linear_classifier(object):
-    """docstring for  linear_classifier"""
+class LinearClassifier(object):
+    """docstring for  LinearClassifier"""
 
     def __init__(self, train_set, label_set):
         self.__train_set = train_set
@@ -74,12 +74,12 @@ if __name__ == '__main__':
             x - min) / (max - min))
     train_set = data[collist[:-1]].values
     tartget = data[collist[-1]].values
-    classifier1 = linear_classifier(
+    classifier1 = LinearClassifier(
         train_set, tartget)
     classifier1.fit(algorithm='least_squares')
     print('--------least_squares--------')
     print(classifier1.get_thet())
-    classifier2 = linear_classifier(
+    classifier2 = LinearClassifier(
         train_set, tartget)
     classifier2.fit(algorithm='gradient_descent',
                     iterations=100000, alpha=0.03)

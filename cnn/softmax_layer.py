@@ -4,8 +4,8 @@ import numpy as np
 from cnn_utils import *
 
 
-class softmax_layer(object):
-    """docstring for softmax_layer"""
+class SoftmaxLayer(object):
+    """docstring for SoftmaxLayer"""
 
     def __init__(self, action, action_derive, layers):
         self.layers = layers
@@ -21,7 +21,7 @@ class softmax_layer(object):
 
     def forward(self, input):
         self.input = input
-        debug(True, 'softmax_layer input:', square_sum(self.input))
+        debug(True, 'SoftmaxLayer input:', square_sum(self.input))
         self.weighted_sum = np.dot(self.weights, self.input) + self.bias
         self.out_put = self.softmax(self.weighted_sum)
         return self.out_put
@@ -64,7 +64,7 @@ class softmax_layer(object):
         """
         # print('softmax--:', self.input_shape,
         #       np.sum(self.weights_grad), alpha, batch_size)
-        debug(True, 'softmax_layer grad:', self.layers,
+        debug(True, 'SoftmaxLayer grad:', self.layers,
               square_sum(self.weights_grad))
         self.weights -= alpha * self.weights_grad / batch_size
         self.bias -= alpha * self.bias_grad / batch_size

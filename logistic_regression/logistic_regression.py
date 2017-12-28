@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 
-class logistic_classifier(object):
-    """docstring for  logistic_classifier"""
+class LogisticClassifier(object):
+    """docstring for  LogisticClassifier"""
 
     def __init__(self, train_set, label_set):
         self.__train_set = train_set
@@ -77,7 +77,7 @@ if __name__ == '__main__':
         test_label = data[col_list[-1]].iloc[test_index].values
         train_set = data[col_list[1:-1]].iloc[train_index].values
         label_set = data[col_list[-1]].iloc[train_index].values
-        classifier = logistic_classifier(train_set, label_set)
+        classifier = LogisticClassifier(train_set, label_set)
         classifier.fit(iterations=100000, alpha=0.03)
         result_set = classifier.classifier(test_set)
         err = 0

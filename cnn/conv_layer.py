@@ -4,8 +4,8 @@ import numpy as np
 from cnn_utils import *
 
 
-class conv_layer(object):
-    '''docstring for conv_layer'''
+class ConvLayer(object):
+    '''docstring for ConvLayer'''
 
     def __init__(self, **kwargs):
         """
@@ -53,7 +53,7 @@ class conv_layer(object):
 
     def forward(self, input):
         self.input = input.reshape(self.input_shape)
-        debug(True, 'conv_layer input:', square_sum(self.input))
+        debug(True, 'ConvLayer input:', square_sum(self.input))
         padding_array = around_with_zero(input_array=self.input,
                                          width_padding=self.padding,
                                          height_padding=self.padding)
@@ -165,7 +165,7 @@ class conv_layer(object):
 
         """
         for k in range(self.kernel_num):
-            debug(True, 'conv_layer grad:', self.input_shape, k,
+            debug(True, 'ConvLayer grad:', self.input_shape, k,
                   square_sum(self.weights_grad[k]))
             self.weights[k] -= alpha * self.weights_grad[k] / batch_size
             self.bias[k] -= alpha * self.bias_grad[k] / batch_size

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import random
 from collections import Counter
+from collections import defaultdict
 
 EPSILON = 1e-4
 
@@ -14,10 +15,8 @@ class KMeans(object):
     def __init__(self, K):
         self.K = K
         self.cent_mass = None
-        self.clusters = {}
+        self.clusters = defaultdict(list)
         self.label_dict = {}
-        for i in range(self.K):
-            self.clusters.setdefault(i, [])
 
     def fit(self, train_set, label_set):
         self.data_size = train_set.shape[0]

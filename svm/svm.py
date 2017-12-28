@@ -7,8 +7,8 @@ import random
 import copy
 
 
-class svm(object):
-    """docstring for svm"""
+class SVM(object):
+    """docstring for SVM"""
 
     def __init__(self, C, toler, max_iter, **kernel_opt):
         """y=wx+b"""
@@ -239,8 +239,8 @@ if __name__ == '__main__':
     test_label = data[col_list[-1]].iloc[test_index].values
     train_set = data[col_list[1:-1]].iloc[train_index].values
     label_set = data[col_list[-1]].iloc[train_index].values
-    # classifier = svm(C=100, max_iter=10000, func='rbf', sigma=0.9)
-    classifier = svm(C=10, toler=0.001, max_iter=10000, func='linear')
+    # classifier = SVM(C=100, max_iter=10000, func='rbf', sigma=0.9)
+    classifier = SVM(C=10, toler=0.001, max_iter=10000, func='linear')
     classifier.fit(train_set, label_set)
     for i in range(len(test_label)):
         result_label = classifier.classifier(test_set[i])
