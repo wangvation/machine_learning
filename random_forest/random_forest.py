@@ -55,9 +55,9 @@ class RandomForest(object):
         if len(label_dict.keys()) == 1:
             return DecisionTree(label=label_dict.keys()[0])
         if attr_set.count(None) == len(attr_set):
-            values = label_dict.values()
+            values = list(label_dict.values())
             max_value_index = values.index(max(values))
-            max_label = label_dict.keys()[max_value_index]
+            max_label = list(label_dict.keys())[max_value_index]
             return DecisionTree(label=max_label)
         tree = DecisionTree()
         tree.split_index = self.best_split_attr(data_set, attr_set)
@@ -74,7 +74,12 @@ class RandomForest(object):
         return tree
 
     def classifier(self, x):
-        pass
+        classes = [tree.predict(x) for tree in self.trees]
+        class_dict = self.count_attr(classes)
+        values = list(class_dict.values())
+        max_value_index = values.index(max(values))
+        max_label = list(class_dict.keys())[max_value_index]
+        return max_label
 
     def best_split_attr(self, data_set, attrs):
         gains = [self.info_gain(data_set, i) for i in range(len(attrs))]
@@ -126,17 +131,19 @@ class RandomForest(object):
         return entropy
 
     def count_attr(self, attr_set):
-        count_dict = defaultdict(int, 0)
+        count_dict = defaultdict(int)
         for attr in attr_set:
             count_dict[attr] += 1
         return count_dict
 
-    def sub_set(self, data_set, attr_index, attr_value):
+    def sub_set(self, data_set, label_set, attr_index, attr_value):
         sub_set = []
-        for row in data_set:
+        sub_label_set = []
+        for i, row in enumerate(data_set):
             if row[attr_index] == attr_value:
                 sub_set.append(row)
-        return sub_set
+                sub_label_set.append(label_set[i])
+        return sub_set, sub_label_set
 
     def bootstrap(self, data_set):
         size = len(data_set)
@@ -146,23 +153,23 @@ class RandomForest(object):
 
 def preprocess(filename):
     train_set = pd.read_csv(filename)
+    # print(train_set[train_set.Sex == 'female'])
     return train_set
 
 
 if __name__ == '__main__':
-    train_set = preprocess("../dataset/titanic/train.csv")
-    test_set = preprocess("../dataset/titanic/test.csv")
+    train_set = preprocess("train.csv")
+    test_set = preprocess("test.csv")
     test_set = test_set.iloc[1:]
-    attr_set = train_set[0, :]
+    attr_set = train_set.iloc[0, :]
     train_set = train_set.iloc[1:, :]
     submission = []
-    submission.append(['PassengerId', 'Survived'])
-    random_forest = RandomForest(10, 3)
+    random_forest = RandomForest(100, 3)
     random_forest.fit(train_set, attr_set, 1)
     count = len(test_set)
     for i in range(count):
-        label = random_forest.classifier(test_set[i])
-        submission.append([test_set[i][0], label])
+        label = random_forest.classifier(test_set.iloc[i, :])
+        submission.append([test_set.iloc[i, 0], label])
     submission_df = pd.DataFrame(data=submission,
                                  columns=['PassengerId', 'Survived'])
     submission_df.to_csv('submission.csv', index=False)
