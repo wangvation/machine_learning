@@ -11,10 +11,14 @@
 
 [朴素贝叶斯](naive_bayesian)
 
+[KMeans聚类](kmeans)
+
 [线性回归](linear_regression)
 
 [Logistic 回归](logistic_regression)
 
 [BP神经网络](neural_network)
+
+[稀疏自编码](autoencoder)
 
 [卷积神经网络](cnn)
