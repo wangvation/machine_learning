@@ -133,9 +133,9 @@ class SVM(object):
         alpha = self.alphas[index]
         if((label_i * error_i < -self.toler and alpha < self.C) or
                 (label_i * error_i > self.toler and alpha > 0)):
-            return False
-        else:
             return True
+        else:
+            return False
 
     def select_second_alpha(self, first_index,
                             valid_indexes, debug=False):
@@ -212,7 +212,8 @@ class SVM(object):
         labels = self.label_mat[sv_index]
         kernels = self.kernel_trans(self.support_vec, np.mat(X))
         y = np.dot(np.multiply(alphas, labels).T, kernels) + self.bias
-        return 1 if y >= 0 else -1
+        print(y)
+        return 1 if y > 0 else -1
 
 
 if __name__ == '__main__':
@@ -233,14 +234,14 @@ if __name__ == '__main__':
     errors = 0
     rights = 0
     test_index = [random.randint(0, data_size - 1)
-                  for _ in range(data_size / 10)]
+                  for _ in range(data_size // 10)]
     train_index = list(set(data_index) ^ set(test_index))
     test_set = data[col_list[1:-1]].iloc[test_index].values
     test_label = data[col_list[-1]].iloc[test_index].values
     train_set = data[col_list[1:-1]].iloc[train_index].values
     label_set = data[col_list[-1]].iloc[train_index].values
-    # classifier = SVM(C=100, max_iter=10000, func='rbf', sigma=0.9)
-    classifier = SVM(C=10, toler=0.001, max_iter=10000, func='linear')
+    classifier = SVM(C=100, toler=0.001, max_iter=10000, func='rbf', sigma=0.9)
+    # classifier = SVM(C=100, toler=0.001, max_iter=10000, func='linear')
     classifier.fit(train_set, label_set)
     for i in range(len(test_label)):
         result_label = classifier.classifier(test_set[i])

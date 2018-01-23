@@ -38,7 +38,7 @@ W_conv1 = weight_variable([5, 5, 1, 6])
 b_conv1 = bias_variable([6])
 
 x_image = tf.reshape(x, [-1, 28, 28, 1])
-paddings = tf.constant([[0, 0], [2, 2], [2, 2, ], [0, 0]])
+paddings = tf.constant([[0, 0], [2, 2], [2, 2], [0, 0]])
 pad_image = tf.pad(x_image, paddings)
 
 h_conv1 = tf.nn.relu(conv2d(pad_image, W_conv1) + b_conv1)
@@ -88,7 +88,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 #     x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
 
 with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())，，，，，，，，，，，，，，m
+    sess.run(tf.global_variables_initializer())
     for i in range(20000):
         batch = mnist.train.next_batch(50)
         if i % 100 == 0:

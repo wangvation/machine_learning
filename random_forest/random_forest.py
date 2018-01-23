@@ -95,11 +95,8 @@ class RandomForest(object):
                                                 label_set,
                                                 attr_indexes)
         sub_attr_indexes = attr_indexes[:]
-        # print(sub_attr_indexes)
         sub_attr_indexes[sub_attr_indexes.index(tree.split_index)] = None
-        # print('attr_values:', tree.split_index, data_set[:, tree.split_index])
         attr_dict = self.count_value(data_set[:, tree.split_index])
-        # print(attr_dict)
         for attr_value, num in attr_dict.items():
             sub_set, sub_label_set = self.sub_set(data_set,
                                                   label_set,
@@ -115,12 +112,6 @@ class RandomForest(object):
     def classifier(self, x):
         classes = [tree.predict(x) for tree in self.trees]
         class_dict = self.count_value(classes)
-        for i, clazz in enumerate(classes, 0):
-            if clazz is None:
-                print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-                print(x)
-                self.trees[i].dump()
-                print('-----------*********************------------')
         max_label = None
         max_vote = 0
         for label, vote in class_dict.items():
@@ -213,7 +204,6 @@ class RandomForest(object):
 
 def preprocess(filename):
     train_set = pd.read_csv(filename)
-    # print(train_set[train_set.Sex == 'female'])
     return train_set
 
 

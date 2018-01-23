@@ -9,56 +9,56 @@ class LinearClassifier(object):
     """docstring for  LinearClassifier"""
 
     def __init__(self, train_set, label_set):
-        self.__train_set = train_set
-        self.__target_mat = np.mat(label_set).T
-        self.__thet = None
-        self.__errores = []
+        self._train_set = train_set
+        self._target_mat = np.mat(label_set).T
+        self._thet = None
+        self._errores = []
 
     def fit(self, algorithm='gradient_descent', iterations=100000, alpha=0.03):
         if algorithm == 'least_squares':
-            self.__least_squares()
+            self._least_squares()
         elif algorithm == 'gradient_descent':
-            self.__gradient_descent(iterations, alpha)
+            self._gradient_descent(iterations, alpha)
 
     def __gradient_descent(self, iterations=100000, alpha=0.03):
         # gradient_descent
-        m, n = np.shape(self.__train_set)
+        m, n = np.shape(self._train_set)
         data = np.ones((m, n + 1))
-        data[:, 1:] = self.__train_set
+        data[:, 1:] = self._train_set
         data = np.mat(data, dtype=np.float32)
-        self.__thet = np.random.rand(n + 1, 1)
+        self._thet = np.random.rand(n + 1, 1)
         for i in range(iterations):
-            h = np.dot(data, self.__thet)
-            err = h - self.__target_mat
+            h = np.dot(data, self._thet)
+            err = h - self._target_mat
             if i % (iterations / 100) == 0:
-                self.__errores.append(np.dot(err.T, err))
+                self._errores.append(np.dot(err.T, err))
             delta_thet = (1.0 / m) * alpha * np.dot(data.T, err)
-            self.__thet = self.__thet - delta_thet
+            self._thet = self._thet - delta_thet
         pass
 
     def __least_squares(self):
         '''
         w=(X.T*X).I*X.T*y
         '''
-        m, n = np.shape(self.__train_set)
+        m, n = np.shape(self._train_set)
         data = np.ones((m, n + 1))
-        data[:, 1:] = self.__train_set
+        data[:, 1:] = self._train_set
         data = np.mat(data, dtype=np.float32)
-        self.__thet = np.dot(
-            np.dot(np.dot(data.T, data).I, data.T), self.__target_mat)
+        self._thet = np.dot(
+            np.dot(np.dot(data.T, data).I, data.T), self._target_mat)
         pass
 
     def classifier(self, item):
         n = len(item)
         tmp = np.ones((1, n + 1))
         tmp[0, 1:] = item
-        return np.dot(tmp, self.__thet)
+        return np.dot(tmp, self._thet)
 
     def get_thet(self):
-        return self.__thet
+        return self._thet
 
     def get_errores(self):
-        return self.__errores
+        return self._errores
 
 
 if __name__ == '__main__':
